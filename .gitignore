@@ -38,6 +38,14 @@ Thumbs.db
 ehthumbs.db
 desktop.ini
 
-# Large model binaries (custom ONNX models should be managed separately or via Git LFS)
+# Large model binaries (custom models should be managed separately or via Git LFS)
 VoiceDetection/models/*.onnx
+VoiceDetection/models/vosk-model-*/
 !VoiceDetection/models/README.md
+GestureRecognition/*.task
+
+
+# Local trainer scratch and datasets
+_local_trainer/
+
+

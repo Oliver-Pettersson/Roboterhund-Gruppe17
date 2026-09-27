@@ -9,19 +9,26 @@ sudo apt install -y \
     python3-dev \
     portaudio19-dev \
     libasound2-dev \
-    alsa-utils
+    alsa-utils \
+    wget \
+    unzip
 
 # 2. Create and activate a virtual environment inside VoiceDetection
 cd "$(dirname "$0")"
 python3 -m venv .venv
 source .venv/bin/activate
 
-# 3. Install Python dependencies (openWakeWord + ONNX Runtime + PyAudio)
+# 3. Install Python dependencies (Vosk + PyAudio + NumPy)
 pip install --upgrade pip
 pip install -r requirements.txt
 
-# 4. Pre-download openWakeWord base feature extraction ONNX models
-python3 -c "import openwakeword; openwakeword.utils.download_models()"
-
+# 4. Download compact German Vosk speech model (~45 MB) if not already present
 mkdir -p models
-echo "Setup complete! Place hier.onnx, sitz.onnx, platz.onnx, auf.onnx, and such.onnx in VoiceDetection/models/"
+if [ ! -d "models/vosk-model-small-de-0.15" ]; then
+    echo "Downloading German speech recognition model..."
+    wget -c https://alphacephei.com/vosk/models/vosk-model-small-de-0.15.zip -O models/vosk-model-small-de-0.15.zip
+    unzip -q models/vosk-model-small-de-0.15.zip -d models/
+    rm models/vosk-model-small-de-0.15.zip
+fi
+
+echo "Setup complete! Run 'python3 voice_control.py' to start voice control."
