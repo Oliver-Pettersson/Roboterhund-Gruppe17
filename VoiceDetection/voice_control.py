@@ -7,8 +7,11 @@ Keywords: "Hier", "Sitz", "Platz", "Auf", "Such"
 
 Behavior:
 - Direct demo mode: recognizes any of the 5 keywords immediately without waiting window.
+- Noise filtering: audio frames below a configurable RMS volume threshold are discarded
+  before classification to prevent false triggers from background noise.
 - De-duplication rule: repeating the same command does not re-trigger until a different command is given.
-- GUI: live visual dashboard highlighting triggered keywords, volume meter, and event log.
+- GUI: live visual dashboard highlighting triggered keywords, volume meter with threshold marker,
+  real-time noise gate status, and event log.
 """
 
 import argparse
@@ -20,6 +23,7 @@ import threading
 import time
 import urllib.request
 import zipfile
+from collections import deque
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
@@ -41,6 +45,12 @@ CONFIG = {
     "audio_queue_max_size": 50,
     "input_device_index": None,  # Set to int if using a specific microphone index
     "debug": False,
+
+    # Noise filtering & Voice Activity Detection (VAD) settings
+    # Frames with RMS below volume_threshold are ignored and never fed to the classifier
+    "volume_threshold": 750.0,      # Minimum RMS volume required to classify input
+    "silence_hangover_chunks": 4,   # Keep classifying for ~400ms of trailing audio after speech drops
+    "pre_roll_chunks": 2,           # Keep ~200ms pre-trigger audio to prevent clipping word onsets
 
     # Vosk Model settings
     "model_dir": Path(__file__).parent / "models",
@@ -64,8 +74,9 @@ CONFIG = {
 class VoiceDetector:
     """
     Background audio processing engine running grammar-constrained Vosk recognition.
-    Enforces the de-duplication rule: identical repeated words do not re-trigger
-    until a different valid keyword is spoken.
+    Filters ambient noise using an RMS volume threshold gate, and enforces the
+    de-duplication rule (identical repeated words do not re-trigger until a
+    different valid keyword is spoken).
     """
 
     def __init__(
@@ -73,12 +84,17 @@ class VoiceDetector:
         config: dict,
         on_triggered: Optional[Callable[[str, str], None]] = None,
         on_ignored_repeat: Optional[Callable[[str], None]] = None,
-        on_volume_update: Optional[Callable[[float], None]] = None,
+        on_volume_update: Optional[Callable[[float, bool, float], None]] = None,
     ) -> None:
         self.cfg = config
         self.on_triggered = on_triggered
         self.on_ignored_repeat = on_ignored_repeat
         self.on_volume_update = on_volume_update
+
+        # Noise filter parameters
+        self.volume_threshold = float(self.cfg.get("volume_threshold", 750.0))
+        self.silence_hangover = int(self.cfg.get("silence_hangover_chunks", 4))
+        self.pre_roll_chunks = int(self.cfg.get("pre_roll_chunks", 2))
 
         self.last_triggered_word: Optional[str] = None
         self.is_running = False
@@ -90,6 +106,10 @@ class VoiceDetector:
         self.stream: Optional[pyaudio.Stream] = None
 
         self.rec: KaldiRecognizer = self._init_vosk_engine()
+
+    def set_volume_threshold(self, threshold: float) -> None:
+        """Dynamically update the noise filter RMS volume threshold."""
+        self.volume_threshold = max(0.0, float(threshold))
 
     def _ensure_model_exists(self) -> Path:
         """Verify the German Vosk model exists; download and extract automatically if missing."""
@@ -198,9 +218,46 @@ class VoiceDetector:
         if self.rec:
             self.rec.Reset()
 
+    def _handle_detected_text(self, detected_text: str) -> None:
+        """Parse recognized text, filter [unk], and handle de-duplication."""
+        if not detected_text or detected_text == "[unk]":
+            return
+
+        tokens = [w.strip().lower() for w in detected_text.split() if w.strip() != "[unk]"]
+        if not tokens:
+            return
+
+        for tok in tokens:
+            if tok in self.cfg["keywords"]:
+                action_name = self.cfg["keywords"][tok]
+
+                # DE-DUPLICATION RULE:
+                # Repeated uses do not re-trigger until a different command is given!
+                if tok == self.last_triggered_word:
+                    if self.on_ignored_repeat:
+                        self.on_ignored_repeat(action_name)
+                    # Reset decoder buffer so it does not loop
+                    self.rec.Reset()
+                    break
+
+                # New distinct word detected -> TRIGGER!
+                self.last_triggered_word = tok
+                self.rec.Reset()
+
+                if self.on_triggered:
+                    self.on_triggered(tok, action_name)
+                break
+
     def process_loop(self) -> None:
-        """Continuous audio decoding loop."""
+        """
+        Continuous audio decoding loop with RMS volume noise gate.
+        Only feeds audio to Vosk when the input volume reaches or exceeds the threshold.
+        """
         self.start_stream()
+
+        pre_roll: deque[bytes] = deque(maxlen=self.pre_roll_chunks)
+        speech_active = False
+        silence_chunks = 0
 
         while self.is_running:
             try:
@@ -208,13 +265,50 @@ class VoiceDetector:
             except queue.Empty:
                 continue
 
-            # Compute RMS volume level
+            # Compute RMS volume level of this 100ms frame
             pcm_arr = np.frombuffer(raw_bytes, dtype=np.int16)
-            rms = float(np.sqrt(np.mean(pcm_arr.astype(np.float32)**2)))
-            if self.on_volume_update:
-                self.on_volume_update(rms)
+            rms = float(np.sqrt(np.mean(pcm_arr.astype(np.float32) ** 2)))
 
-            # Recognize audio
+            is_above_threshold = (rms >= self.volume_threshold)
+
+            if is_above_threshold:
+                # Volume reached the threshold: active speech / command!
+                silence_chunks = 0
+                if not speech_active:
+                    speech_active = True
+                    # Replay pre-roll frames so leading consonants (e.g. 'S' or 'H') aren't clipped
+                    while pre_roll:
+                        pr_bytes = pre_roll.popleft()
+                        self.rec.AcceptWaveform(pr_bytes)
+            else:
+                # Volume below threshold (ambient noise or pause)
+                if speech_active:
+                    silence_chunks += 1
+                    if silence_chunks > self.silence_hangover:
+                        # Hangover window elapsed: finalize utterance
+                        speech_active = False
+                        silence_chunks = 0
+                        final_res = json.loads(self.rec.Result())
+                        final_text = final_res.get("text", "")
+                        self._handle_detected_text(final_text)
+                else:
+                    # Pure noise below threshold: keep in pre-roll and skip classification
+                    pre_roll.append(raw_bytes)
+
+            is_gate_open = speech_active or is_above_threshold
+
+            # Notify volume meter listeners
+            if self.on_volume_update:
+                try:
+                    self.on_volume_update(rms, is_gate_open, self.volume_threshold)
+                except TypeError:
+                    self.on_volume_update(rms)
+
+            # If input is below threshold and not in hangover window, SKIP CLASSIFICATION!
+            if not is_gate_open:
+                continue
+
+            # Feed active frame to recognizer
             detected_text = ""
             if self.rec.AcceptWaveform(raw_bytes):
                 res = json.loads(self.rec.Result())
@@ -223,34 +317,7 @@ class VoiceDetector:
                 part = json.loads(self.rec.PartialResult())
                 detected_text = part.get("partial", "")
 
-            if not detected_text or detected_text == "[unk]":
-                continue
-
-            tokens = [w.strip().lower() for w in detected_text.split() if w.strip() != "[unk]"]
-            if not tokens:
-                continue
-
-            # Process valid detected words
-            for tok in tokens:
-                if tok in self.cfg["keywords"]:
-                    action_name = self.cfg["keywords"][tok]
-
-                    # DE-DUPLICATION RULE:
-                    # Repeated uses do not re-trigger until a different command is given!
-                    if tok == self.last_triggered_word:
-                        if self.on_ignored_repeat:
-                            self.on_ignored_repeat(action_name)
-                        # Reset decoder buffer so it doesn't loop
-                        self.rec.Reset()
-                        break
-
-                    # New distinct word detected -> TRIGGER!
-                    self.last_triggered_word = tok
-                    self.rec.Reset()
-
-                    if self.on_triggered:
-                        self.on_triggered(tok, action_name)
-                    break
+            self._handle_detected_text(detected_text)
 
     def stop(self) -> None:
         """Clean up audio streams."""
@@ -282,8 +349,8 @@ def launch_gui(config: dict):
 
     root = tk.Tk()
     root.title("Roboterhund Gruppe 17 - Voice Control Demo")
-    root.geometry("640x680")
-    root.minsize(580, 600)
+    root.geometry("640x740")
+    root.minsize(580, 640)
     root.configure(bg="#0F172A")  # Tailwind slate-900
 
     # Thread-safe event communication queue
@@ -296,8 +363,8 @@ def launch_gui(config: dict):
     def on_ignored_repeat_cb(action: str):
         gui_queue.put(("IGNORED", action, time.strftime("%H:%M:%S")))
 
-    def on_volume_update_cb(rms: float):
-        gui_queue.put(("VOLUME", rms))
+    def on_volume_update_cb(rms: float, gate_open: bool, thresh: float):
+        gui_queue.put(("VOLUME", rms, gate_open, thresh))
 
     detector = VoiceDetector(
         config,
@@ -321,7 +388,7 @@ def launch_gui(config: dict):
 
     subtitle_lbl = tk.Label(
         header_frame,
-        text="Offline German Speech Recognition (Vosk) - Live Keyword Demo",
+        text="Offline German Speech Recognition (Vosk) - Noise-Filtered Demo",
         font=("Segoe UI", 10),
         fg="#94A3B8",
         bg="#0F172A",
@@ -330,7 +397,7 @@ def launch_gui(config: dict):
 
     # Big Card Display for the Triggered Keyword
     hero_frame = tk.Frame(root, bg="#1E293B", highlightthickness=1, highlightbackground="#334155")
-    hero_frame.pack(fill="x", padx=24, pady=12)
+    hero_frame.pack(fill="x", padx=24, pady=10)
 
     hero_prompt = tk.Label(
         hero_frame,
@@ -339,7 +406,7 @@ def launch_gui(config: dict):
         fg="#94A3B8",
         bg="#1E293B",
     )
-    hero_prompt.pack(pady=(16, 4))
+    hero_prompt.pack(pady=(14, 2))
 
     hero_label = tk.Label(
         hero_frame,
@@ -348,7 +415,7 @@ def launch_gui(config: dict):
         fg="#38BDF8",  # Sky blue
         bg="#1E293B",
     )
-    hero_label.pack(pady=4)
+    hero_label.pack(pady=2)
 
     status_sub = tk.Label(
         hero_frame,
@@ -357,11 +424,11 @@ def launch_gui(config: dict):
         fg="#CBD5E1",
         bg="#1E293B",
     )
-    status_sub.pack(pady=(0, 16))
+    status_sub.pack(pady=(0, 14))
 
     # Keyword Badges Row
     badge_container = tk.Frame(root, bg="#0F172A")
-    badge_container.pack(fill="x", padx=24, pady=8)
+    badge_container.pack(fill="x", padx=24, pady=6)
 
     badge_labels: Dict[str, tk.Label] = {}
     for kw_key, kw_name in config["keywords"].items():
@@ -388,28 +455,91 @@ def launch_gui(config: dict):
         fg="#94A3B8",
         bg="#0F172A",
     )
-    rule_banner.pack(pady=(4, 8))
+    rule_banner.pack(pady=(2, 6))
 
-    # Real-Time Volume Level Bar
-    vol_frame = tk.Frame(root, bg="#0F172A")
-    vol_frame.pack(fill="x", padx=24, pady=4)
+    # Real-Time Volume Level Bar & Noise Filter Controls Card
+    filter_card = tk.Frame(root, bg="#1E293B", highlightthickness=1, highlightbackground="#334155")
+    filter_card.pack(fill="x", padx=24, pady=6)
+
+    vol_top_row = tk.Frame(filter_card, bg="#1E293B")
+    vol_top_row.pack(fill="x", padx=14, pady=(10, 4))
 
     vol_title = tk.Label(
-        vol_frame,
-        text="Microphone Input Level:",
-        font=("Segoe UI", 9),
-        fg="#94A3B8",
-        bg="#0F172A",
+        vol_top_row,
+        text="Microphone Input & Noise Gate",
+        font=("Segoe UI", 10, "bold"),
+        fg="#F1F5F9",
+        bg="#1E293B",
     )
     vol_title.pack(side="left")
 
-    vol_canvas = tk.Canvas(vol_frame, width=280, height=12, bg="#1E293B", highlightthickness=0)
-    vol_canvas.pack(side="left", padx=10)
-    vol_rect = vol_canvas.create_rectangle(0, 0, 0, 12, fill="#10B981")
+    gate_badge = tk.Label(
+        vol_top_row,
+        text="○ NOISE FILTERED",
+        font=("Segoe UI", 9, "bold"),
+        fg="#94A3B8",
+        bg="#334155",
+        padx=8,
+        pady=2,
+    )
+    gate_badge.pack(side="right")
+
+    # Meter canvas (shows volume bar + threshold marker line)
+    vol_canvas = tk.Canvas(filter_card, width=540, height=14, bg="#0F172A", highlightthickness=0)
+    vol_canvas.pack(fill="x", padx=14, pady=4)
+    vol_rect = vol_canvas.create_rectangle(0, 0, 0, 14, fill="#38BDF8")
+    thresh_line = vol_canvas.create_line(0, 0, 0, 14, fill="#F59E0B", width=2)
+
+    # Threshold slider controls
+    slider_row = tk.Frame(filter_card, bg="#1E293B")
+    slider_row.pack(fill="x", padx=14, pady=(4, 10))
+
+    slider_lbl = tk.Label(
+        slider_row,
+        text="Volume Threshold:",
+        font=("Segoe UI", 9),
+        fg="#94A3B8",
+        bg="#1E293B",
+    )
+    slider_lbl.pack(side="left")
+
+    thresh_val_lbl = tk.Label(
+        slider_row,
+        text=f"{detector.volume_threshold:.0f} RMS",
+        font=("Segoe UI", 9, "bold"),
+        fg="#F59E0B",
+        bg="#1E293B",
+        width=10,
+        anchor="w",
+    )
+    thresh_val_lbl.pack(side="left", padx=(6, 12))
+
+    def on_slider_change(val_str):
+        new_val = float(val_str)
+        detector.set_volume_threshold(new_val)
+        thresh_val_lbl.config(text=f"{new_val:.0f} RMS")
+
+    thresh_scale = tk.Scale(
+        slider_row,
+        from_=100,
+        to=2500,
+        orient="horizontal",
+        resolution=25,
+        showvalue=False,
+        bg="#1E293B",
+        fg="#F1F5F9",
+        troughcolor="#0F172A",
+        activebackground="#38BDF8",
+        highlightthickness=0,
+        bd=0,
+        command=on_slider_change,
+    )
+    thresh_scale.set(int(detector.volume_threshold))
+    thresh_scale.pack(side="left", fill="x", expand=True)
 
     # Command History / Event Log
     log_frame = tk.Frame(root, bg="#1E293B", highlightthickness=1, highlightbackground="#334155")
-    log_frame.pack(fill="both", expand=True, padx=24, pady=(8, 12))
+    log_frame.pack(fill="both", expand=True, padx=24, pady=(6, 10))
 
     log_title = tk.Label(
         log_frame,
@@ -418,7 +548,7 @@ def launch_gui(config: dict):
         fg="#94A3B8",
         bg="#1E293B",
     )
-    log_title.pack(anchor="w", padx=12, pady=(10, 4))
+    log_title.pack(anchor="w", padx=12, pady=(8, 4))
 
     log_listbox = tk.Listbox(
         log_frame,
@@ -429,7 +559,7 @@ def launch_gui(config: dict):
         highlightthickness=0,
         bd=0,
     )
-    log_listbox.pack(fill="both", expand=True, padx=12, pady=(0, 10))
+    log_listbox.pack(fill="both", expand=True, padx=12, pady=(0, 8))
 
     # Bottom Button Controls
     btn_frame = tk.Frame(root, bg="#0F172A")
@@ -512,11 +642,37 @@ def launch_gui(config: dict):
                 log_listbox.insert(0, log_entry)
 
             elif ev_type == "VOLUME":
-                _, rms = ev
-                bar_len = min(280, int((rms / 2000.0) * 280))
-                color = "#10B981" if rms < 2500 else "#EF4444"
-                vol_canvas.coords(vol_rect, 0, 0, bar_len, 12)
-                vol_canvas.itemconfig(vol_rect, fill=color)
+                _, rms, gate_open, thresh = ev
+                canvas_w = vol_canvas.winfo_width()
+                if canvas_w <= 1:
+                    canvas_w = 540
+
+                # Maximum meter range: 2500 RMS
+                max_rms = 2500.0
+                bar_len = min(canvas_w, int((rms / max_rms) * canvas_w))
+                thresh_x = min(canvas_w, int((thresh / max_rms) * canvas_w))
+
+                # Update threshold marker line position
+                vol_canvas.coords(thresh_line, thresh_x, 0, thresh_x, 14)
+
+                # Update volume bar color and gate badge
+                if gate_open:
+                    bar_color = "#10B981"  # Emerald green (active speech)
+                    gate_badge.config(
+                        text="● CLASSIFYING (Speech)",
+                        bg="#065F46",
+                        fg="#34D399",
+                    )
+                else:
+                    bar_color = "#334155"  # Muted slate (filtered background noise)
+                    gate_badge.config(
+                        text="○ NOISE FILTERED",
+                        bg="#334155",
+                        fg="#94A3B8",
+                    )
+
+                vol_canvas.coords(vol_rect, 0, 0, bar_len, 14)
+                vol_canvas.itemconfig(vol_rect, fill=bar_color)
 
         root.after(30, process_gui_events)
 
@@ -539,9 +695,11 @@ def launch_gui(config: dict):
 # ============================================================================
 def run_headless(config: dict):
     """Run in terminal mode without GUI."""
+    thresh = config.get("volume_threshold", 750.0)
     print("============================================================")
     print(" HSLU PREN - Roboterhund Gruppe 17 (Voice Control Demo)")
     print(" Mode: Headless Console")
+    print(f" Noise Filter: Active (Volume Threshold = {thresh:.0f} RMS)")
     print(" Commands: 'Hier', 'Sitz', 'Platz', 'Auf', 'Such'")
     print(" Rule: Repeated words do not re-trigger until a different word is spoken.")
     print("============================================================\n")
@@ -603,6 +761,13 @@ def main():
         help="PyAudio device index for the microphone (default: system default).",
     )
     parser.add_argument(
+        "--volume-threshold",
+        "-t",
+        type=float,
+        default=None,
+        help="RMS volume threshold to filter ambient noise before classification (default: 750.0).",
+    )
+    parser.add_argument(
         "--headless",
         action="store_true",
         help="Run in console mode without launching the graphical dashboard.",
@@ -617,6 +782,8 @@ def main():
     config = dict(CONFIG)
     if args.device_index is not None:
         config["input_device_index"] = args.device_index
+    if args.volume_threshold is not None:
+        config["volume_threshold"] = args.volume_threshold
 
     if args.headless:
         run_headless(config)
