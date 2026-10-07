@@ -1,0 +1,19 @@
+[workspace]
+authors = ["theLuniCoder <liano@gmx.ch>"]
+channels = ["https://prefix.dev/robostack-jazzy", "https://prefix.dev/conda-forge"]
+name = "roboterhund-gruppe17"
+platforms = ["win-64"]
+version = "0.1.0"
+
+[tasks]
+
+[activation.env]
+# Fast DDS can select different VPN/virtual adapters for separate processes on
+# Windows. Use Cyclone DDS and constrain localhost-only discovery to loopback.
+RMW_IMPLEMENTATION = "rmw_cyclonedds_cpp"
+ROS_AUTOMATIC_DISCOVERY_RANGE = "LOCALHOST"
+CYCLONEDDS_URI = "<CycloneDDS xmlns=\"https://cdds.io/config\"><Domain id=\"any\"><General><Interfaces><NetworkInterface name=\"Loopback Pseudo-Interface 1\" priority=\"default\" multicast=\"true\" /></Interfaces><AllowMulticast>true</AllowMulticast></General></Domain></CycloneDDS>"
+
+[dependencies]
+ros-jazzy-desktop = ">=0.11.0,<0.12"
+ros-dev-tools = ">=1.0.3,<2"

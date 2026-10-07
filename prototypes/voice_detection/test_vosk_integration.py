@@ -9,8 +9,8 @@ import time
 import json
 import numpy as np
 
-sys.path.insert(0, os.path.abspath("."))
-from VoiceDetection.voice_control import VoiceDetector, CONFIG
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from voice_control import VoiceDetector, CONFIG
 
 def run_simulation():
     print("==================================================")

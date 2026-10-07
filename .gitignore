@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 
 # Virtual environments
+.pixi/
 .venv/
 venv/
 env/
@@ -11,6 +12,8 @@ ENV/
 
 # Distribution / packaging
 build/
+install/
+log/
 develop-eggs/
 dist/
 downloads/
@@ -38,11 +41,21 @@ Thumbs.db
 ehthumbs.db
 desktop.ini
 
-# Large model binaries (custom models should be managed separately or via Git LFS)
-VoiceDetection/models/*.onnx
-VoiceDetection/models/vosk-model-*/
-!VoiceDetection/models/README.md
-GestureRecognition/*.task
+# Large model binaries (manage separately or via Git LFS)
+*.onnx
+*.pt
+*.pth
+*.tflite
+*.engine
+*.bag
+*.db3
+*.mcap
+**/datasets/
+prototypes/voice_detection/models/*
+!prototypes/voice_detection/models/README.md
+prototypes/gesture_recognition/*.task
+models/bone_detection/*
+!models/bone_detection/README.md
 
 
 # Local trainer scratch and datasets

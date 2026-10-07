@@ -21,26 +21,26 @@ As specified in **Section 3.1 (Page 5, Abbildung 4)** of the PREN1 specification
 ### 1. Run the Interactive Camera Visualizer
 Open PowerShell in the project root:
 ```powershell
-GestureRecognition\.venv\Scripts\python GestureRecognition\gesture_control.py
+prototypes\gesture_recognition\.venv\Scripts\python prototypes\gesture_recognition\gesture_control.py
 ```
 
 ### 2. Controls & Flags
 - Press **`q`** or **`ESC`** in the video window to quit.
 - To use a different camera device:
   ```powershell
-  GestureRecognition\.venv\Scripts\python GestureRecognition\gesture_control.py --camera-id 1
+  prototypes\gesture_recognition\.venv\Scripts\python prototypes\gesture_recognition\gesture_control.py --camera-id 1
   ```
 - To adjust the cooldown window between repeated events (default: 1.0s):
   ```powershell
-  GestureRecognition\.venv\Scripts\python GestureRecognition\gesture_control.py --cooldown 0.5
+  prototypes\gesture_recognition\.venv\Scripts\python prototypes\gesture_recognition\gesture_control.py --cooldown 0.5
   ```
 - To track multiple hands if needed (defaults to 1):
   ```powershell
-  GestureRecognition\.venv\Scripts\python GestureRecognition\gesture_control.py --max-hands 2
+  prototypes\gesture_recognition\.venv\Scripts\python prototypes\gesture_recognition\gesture_control.py --max-hands 2
   ```
 - To run without a GUI window (e.g. headless on robot):
   ```powershell
-  GestureRecognition\.venv\Scripts\python GestureRecognition\gesture_control.py --headless
+  prototypes\gesture_recognition\.venv\Scripts\python prototypes\gesture_recognition\gesture_control.py --headless
   ```
 
 ---
@@ -49,7 +49,7 @@ GestureRecognition\.venv\Scripts\python GestureRecognition\gesture_control.py
 
 Run the headless unit test suite verifying geometric classification logic:
 ```powershell
-GestureRecognition\.venv\Scripts\pytest GestureRecognition\test_gestures.py -v
+prototypes\gesture_recognition\.venv\Scripts\pytest prototypes\gesture_recognition\test_gestures.py -v
 ```
 
 ---
@@ -58,13 +58,13 @@ GestureRecognition\.venv\Scripts\pytest GestureRecognition\test_gestures.py -v
 
 1. Run the automated setup script:
    ```bash
-   chmod +x GestureRecognition/setup_rpi5.sh
-   ./GestureRecognition/setup_rpi5.sh
+   chmod +x prototypes/gesture_recognition/setup_rpi5.sh
+   ./prototypes/gesture_recognition/setup_rpi5.sh
    ```
 2. Activate environment and run:
    ```bash
-   source GestureRecognition/.venv/bin/activate
-   python3 GestureRecognition/gesture_control.py --headless
+   source prototypes/gesture_recognition/.venv/bin/activate
+   python3 prototypes/gesture_recognition/gesture_control.py --headless
    ```
 
 ---
