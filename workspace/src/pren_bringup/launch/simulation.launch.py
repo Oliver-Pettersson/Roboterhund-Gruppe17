@@ -57,9 +57,16 @@ def generate_launch_description():
     )
 
     if not webots_home.exists():
-        raise RuntimeError(
-            f"Webots wurde nicht gefunden: {webots_home}"
+        fallback_webots = (
+            Path(os.environ.get("ProgramFiles", "C:/Program Files"))
+            / "Webots"
         )
+        if fallback_webots.exists():
+            webots_home = fallback_webots
+        else:
+            raise RuntimeError(
+                f"Webots wurde nicht gefunden: {webots_home}"
+            )
 
     webots_exe = find_executable(
         webots_home,
@@ -108,6 +115,9 @@ def generate_launch_description():
             str(world_file),
         ],
         output="screen",
+        additional_env={
+            "WEBOTS_HOME": str(webots_home),
+        },
     )
 
     # Externen Controller starten
