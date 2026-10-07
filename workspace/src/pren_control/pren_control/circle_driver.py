@@ -1,21 +1,25 @@
+"""Publish velocity commands that drive the robot along a circle."""
+
+from geometry_msgs.msg import Twist
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import Twist
 
 
 class CircleDriver(Node):
+    """Publish parameterized circular motion commands on ``/cmd_vel``."""
 
     def __init__(self):
-        super().__init__("circle_driver")
+        """Initialize parameters, publisher, and periodic command timer."""
+        super().__init__('circle_driver')
 
         # ROS-Parameter
-        self.declare_parameter("radius", 1.0)
-        self.declare_parameter("linear_speed", 0.2)
+        self.declare_parameter('radius', 1.0)
+        self.declare_parameter('linear_speed', 0.2)
 
         # Publisher
         self.publisher = self.create_publisher(
             Twist,
-            "/cmd_vel",
+            '/cmd_vel',
             10
         )
 
@@ -25,22 +29,21 @@ class CircleDriver(Node):
             self.drive_circle
         )
 
-        self.get_logger().info("Circle driver started")
-
+        self.get_logger().info('Circle driver started')
 
     def drive_circle(self):
-
+        """Calculate and publish the current circular velocity command."""
         radius = float(
-            self.get_parameter("radius").value
+            self.get_parameter('radius').value
         )
 
         linear_speed = float(
-            self.get_parameter("linear_speed").value
+            self.get_parameter('linear_speed').value
         )
 
         if abs(radius) < 0.01:
             self.get_logger().error(
-                "Radius darf nicht 0 sein."
+                'Radius darf nicht 0 sein.'
             )
             return
 
@@ -61,7 +64,7 @@ class CircleDriver(Node):
 
 
 def main(args=None):
-
+    """Run the circle-driver node until it is interrupted."""
     rclpy.init(args=args)
 
     node = CircleDriver()
@@ -81,5 +84,5 @@ def main(args=None):
         rclpy.shutdown()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

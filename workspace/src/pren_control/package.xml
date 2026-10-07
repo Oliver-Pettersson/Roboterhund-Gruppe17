@@ -3,7 +3,7 @@
 <package format="3">
   <name>pren_control</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>ROS 2 motion-control nodes for the PREN robot dog.</description>
   <maintainer email="liano@gmx.ch">liano</maintainer>
   <license>Apache-2.0</license>
 

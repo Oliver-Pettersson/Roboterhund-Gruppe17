@@ -3,7 +3,7 @@
 <package format="3">
   <name>pren_bringup</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Launch files for the PREN robot dog and its simulation.</description>
   <maintainer email="liano@gmx.ch">liano</maintainer>
   <license>Apache-2.0</license>
 

@@ -1,3 +1,5 @@
+"""Bridge ROS velocity commands and Webots Pioneer wheel devices."""
+
 import time
 
 import rclpy
@@ -17,8 +19,10 @@ COMMAND_TIMEOUT = 0.5   # s
 
 
 class WebotsBridge(Node):
+    """Translate ROS commands to wheel speeds and publish encoder states."""
 
     def __init__(self):
+        """Initialize ROS interfaces and command state."""
         super().__init__("webots_pioneer")
 
         self.left_speed = 0.0
@@ -52,7 +56,7 @@ class WebotsBridge(Node):
         )
 
     def cmd_vel_callback(self, msg):
-
+        """Convert a velocity command into bounded wheel speeds."""
         linear = msg.linear.x
         angular = msg.angular.z
 
@@ -78,7 +82,7 @@ class WebotsBridge(Node):
         self.last_command_time = time.monotonic()
 
     def update_watchdog(self):
-
+        """Stop the simulated robot when velocity commands time out."""
         if (
             time.monotonic() - self.last_command_time
             > COMMAND_TIMEOUT
@@ -91,7 +95,7 @@ class WebotsBridge(Node):
         left_position,
         right_position,
     ):
-
+        """Publish the current left and right wheel positions."""
         msg = JointState()
 
         msg.header.stamp = (
