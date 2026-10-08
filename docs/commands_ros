@@ -1,0 +1,11 @@
+## ros commands (im workspace und pixi shell)
+
+gebauter Workspace lade: . .\install\local_setup.ps1
+
+Simulation starten: ros2 launch pren_bringup simulation.launch.py
+
+Programm laufen lassen:
+- Bauen (im Workspace): colcon build danach . .\install\local_setup.ps1
+- starten: ros2 run pren_control circle_driver
+
+

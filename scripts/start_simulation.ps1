@@ -21,7 +21,12 @@ if (-not $env:WEBOTS_HOME) {
 
 if (-not (Test-Path "$RepoRoot\workspace\install\local_setup.ps1")) {
     Write-Host "[INFO] Workspace not built yet. Running colcon build..." -ForegroundColor Cyan
-    pixi run --manifest-path "$RepoRoot\pixi.toml" colcon build --merge-install
+    Push-Location "$RepoRoot\workspace"
+    try {
+        pixi run --manifest-path "$RepoRoot\pixi.toml" colcon build --merge-install
+    } finally {
+        Pop-Location
+    }
 }
 
 Write-Host "========================================================" -ForegroundColor Green

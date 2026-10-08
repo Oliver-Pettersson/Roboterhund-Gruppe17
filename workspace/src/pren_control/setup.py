@@ -1,3 +1,5 @@
+"""Package the PREN motion-control ROS nodes."""
+
 from setuptools import find_packages, setup
 
 package_name = 'pren_control'
@@ -15,7 +17,7 @@ setup(
     zip_safe=True,
     maintainer='liano',
     maintainer_email='liano@gmx.ch',
-    description='TODO: Package description',
+    description='ROS 2 motion-control nodes for the PREN robot dog.',
     license='Apache-2.0',
     extras_require={
         'test': [
