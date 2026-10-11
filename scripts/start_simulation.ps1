@@ -19,13 +19,12 @@ if (-not $env:WEBOTS_HOME) {
     }
 }
 
-if (-not (Test-Path "$RepoRoot\workspace\install\local_setup.ps1")) {
-    Write-Host "[INFO] Workspace not built yet. Running colcon build..." -ForegroundColor Cyan
-    pixi run --manifest-path "$RepoRoot\pixi.toml" colcon build --merge-install
-}
+Write-Host "[INFO] Building ROS 2 workspace..." -ForegroundColor Cyan
+pixi run --manifest-path "$RepoRoot\pixi.toml" colcon build --merge-install
 
-Write-Host "========================================================" -ForegroundColor Green
-Write-Host " Starting PREN Webots Simulation (Webots + ROS Bridge)" -ForegroundColor Green
-Write-Host "========================================================" -ForegroundColor Green
+Write-Host "=========================================================================" -ForegroundColor Green
+Write-Host " Starting PREN Integrated Simulation Pipeline (Gruppe 17)" -ForegroundColor Green
+Write-Host " Webots R2025a + Bridge + Search Driver + Control Panel + Voice + Gestures" -ForegroundColor Green
+Write-Host "=========================================================================" -ForegroundColor Green
 
 pixi run powershell -NoExit -Command "cd workspace; . .\install\local_setup.ps1; ros2 launch pren_bringup simulation.launch.py"

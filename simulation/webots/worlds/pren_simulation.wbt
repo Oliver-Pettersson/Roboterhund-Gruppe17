@@ -3,27 +3,233 @@
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackground.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/floors/protos/Floor.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/traffic/protos/TrafficCone.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/robots/adept/pioneer3/protos/Pioneer3dx.proto"
 
 WorldInfo {
+  title "PREN Roboterhund Such-Simulation"
+  basicTimeStep 16
 }
-Viewpoint {
-  orientation -0.08897821892123585 0.03442567815734912 0.9954384708463959 2.4063712592547297
-  position 14.385977894994172 -12.758510765793819 4.359986933942096
+DEF VIEWPOINT Viewpoint {
+  fieldOfView 0.95
+  orientation 0 1 0 0.40
+  position -4.2 0 2.8
 }
 TexturedBackground {
 }
 TexturedBackgroundLight {
 }
 Floor {
+  size 15 15
+  appearance PBRAppearance {
+    baseColor 0.85 0.85 0.85
+    roughness 0.5
+    metalness 0.05
+  }
 }
-Pioneer3dx {
-  hidden linearVelocity_0 0.19499999999497247 -4.565937253431752e-07 3.107635518168253e-13
-  hidden angularVelocity_0 1.6237954303850976e-08 -2.1296380232829578e-11 -2.107724357689223e-07
-  hidden rotation_1 0.5773502688890276 -0.5773502693399248 -0.5773502693399248 2.094395000450898
-  hidden rotation_4 -0.6494436965812783 0.6494437583568451 -0.39553216013641723 2.3882949453199553
-  hidden rotation_9 -0.6494436771182174 0.649443738893787 -0.3955322240511222 2.388294834783491
-  translation 2.7885793494742885 -1.417036432344372e-06 0.09481477876332632
-  rotation -4.461264422011406e-07 -0.9999999974433976 -7.150528389611483e-05 0.03462365393582418
+
+# =============================================================
+# PREN BUEHNE & SPIELFELD-MARKIERUNGEN (gemaess HSLU Aufgabenstellung)
+# =============================================================
+
+# Startfeld Markierung (ca. 20 cm x 50 cm)
+Solid {
+  name "start_zone"
+  translation 0 0 0.001
+  children [
+    # Startfeld-Flaeche
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.2 0.55 0.3
+        roughness 0.6
+      }
+      geometry Box {
+        size 0.5 0.35 0.001
+      }
+    }
+  ]
+}
+
+# 30-Grad-Suchsektor linke Begrenzungslinie (5 m Laenge, +15 Grad)
+Solid {
+  name "sector_line_left"
+  translation 2.4148 0.647 0.0015
+  rotation 0 0 1 0.2618
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 1 0.85 0
+        roughness 0.4
+      }
+      geometry Box {
+        size 5.0 0.04 0.001
+      }
+    }
+  ]
+}
+
+# 30-Grad-Suchsektor rechte Begrenzungslinie (5 m Laenge, -15 Grad)
+Solid {
+  name "sector_line_right"
+  translation 2.4148 -0.647 0.0015
+  rotation 0 0 1 -0.2618
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 1 0.85 0
+        roughness 0.4
+      }
+      geometry Box {
+        size 5.0 0.04 0.001
+      }
+    }
+  ]
+}
+
+# 5m-Abschlusskante zwischen den Pylonen (2588.19 mm Sehne)
+Solid {
+  name "sector_arc_line"
+  translation 4.8296 0 0.0015
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 1 0.85 0
+        roughness 0.4
+      }
+      geometry Box {
+        size 0.04 2.588 0.001
+      }
+    }
+  ]
+}
+
+# Interaktionsbereich-Linie (D = 1.5 m)
+Solid {
+  name "interaction_line"
+  translation -0.75 0 0.0015
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.2 0.4 0.8
+        roughness 0.5
+      }
+      geometry Box {
+        size 0.03 1.5 0.001
+      }
+    }
+  ]
+}
+
+# Eck-Pylone (Traffic Cones)
+TrafficCone {
+  name "cone_far_left"
+  translation 4.8296 1.2941 0
+}
+TrafficCone {
+  name "cone_far_right"
+  translation 4.8296 -1.2941 0
+}
+TrafficCone {
+  name "cone_start_left"
+  translation -0.3 0.6 0
+}
+TrafficCone {
+  name "cone_start_right"
+  translation -0.3 -0.6 0
+}
+
+# =============================================================
+# ZIELOBJEKT: KNOCHEN (Zylinder, 21 cm Laenge, 5 cm Durchmesser)
+# =============================================================
+DEF BONE Solid {
+  name "bone"
+  translation 3.0 0.5 0.025
+  rotation 1 0 0 1.5708
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.55 0.35 0.18
+        roughness 0.5
+        metalness 0.05
+      }
+      geometry Cylinder {
+        height 0.21
+        radius 0.025
+      }
+    }
+  ]
+  boundingObject Cylinder {
+    height 0.21
+    radius 0.025
+  }
+  physics Physics {
+    density -1
+    mass 0.15
+  }
+}
+
+# Spezialeffekt: Feier-Licht ueber dem Knochen
+DEF CELEBRATION_LIGHT PointLight {
+  attenuation 0 0 1
+  color 1 0.85 0.1
+  intensity 0
+  location 3.0 0.5 0.4
+}
+
+# =============================================================
+# ROBOTER (Pioneer 3-DX mit Supervisor, Speaker & Sichtkegel)
+# =============================================================
+DEF PIONEER_3DX Pioneer3dx {
+  translation 0 0 0.0975
+  rotation 0 0 1 3.14159
   controller "<extern>"
+  supervisor TRUE
+  extensionSlot [
+    # Roboter-Lautsprecher fuer akustisches Signal
+    DEF ROBOT_SPEAKER Speaker {
+      name "speaker"
+    }
+
+    # Visueller halbtransparenter Sichtkegel (Reichweite 3m, Oeffnung 45 Grad)
+    DEF VISION_CONE Pose {
+      translation 0 0 -0.08
+      children [
+        Shape {
+          appearance DEF VISION_CONE_APP PBRAppearance {
+            baseColor 0 0.8 1
+            transparency 0.65
+            roughness 0.2
+            metalness 0.1
+            emissiveColor 0 0.25 0.5
+          }
+          geometry IndexedFaceSet {
+            coord Coordinate {
+              point [
+                0.2 0.0 0.015,
+                2.9716 -1.1481 0.015,
+                3.0708 -0.8709 0.015,
+                3.1424 -0.5853 0.015,
+                3.1856 -0.2941 0.015,
+                3.2 0.0 0.015,
+                3.1856 0.2941 0.015,
+                3.1424 0.5853 0.015,
+                3.0708 0.8709 0.015,
+                2.9716 1.1481 0.015
+              ]
+            }
+            coordIndex [
+              0 1 2 -1, 0 2 1 -1,
+              0 2 3 -1, 0 3 2 -1,
+              0 3 4 -1, 0 4 3 -1,
+              0 4 5 -1, 0 5 4 -1,
+              0 5 6 -1, 0 6 5 -1,
+              0 6 7 -1, 0 7 6 -1,
+              0 7 8 -1, 0 8 7 -1,
+              0 8 9 -1, 0 9 8 -1
+            ]
+          }
+        }
+      ]
+    }
+  ]
 }

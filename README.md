@@ -34,4 +34,32 @@ Generierte Pixi-Umgebungen, ROS-Buildartefakte, Caches sowie große Modelle und 
 
 ## Aktueller Stand
 
-Die vorhandenen Prototypen und die Webots-Simulation wurden unverändert in diese Struktur übernommen. Die vorgesehenen ROS-2-Paketverzeichnisse sind zunächst Platzhalter; eine Migration der Prototypen in ROS-2-Nodes ist ausdrücklich noch nicht erfolgt.
+- **ROS 2 Jazzy unter Windows:** Lauffähig über Pixi/RoboStack mit Cyclone DDS.
+- **Integrierte Gesamtsimulation (Merged Pipeline):**
+  - **180°-Startposition:** Der Roboter startet im Startfeld um $180^\circ$ abgewandt vom Suchbereich (Blick zum Schiedsrichter / Interaktionsbereich).
+  - **Sprach- & Gestensteuerung:** `prototypes/voice_detection` (Vosk) und `prototypes/gesture_recognition` (MediaPipe) starten parallel und übertragen Kommandos nahtlos über UDP (Port 9876) und ROS 2 (`/pren/command`).
+  - **Befehl «SUCH»:** Bei Sprachbefehl «Such» dreht sich der Roboter um $180^\circ$ zum Suchfeld. Während der gesamten Suche werden alle weiteren Befehle gesperrt, bis die Mission beendet ist.
+  - **Suchfahrt & 2x Geschwindigkeit:** Roboter bewegt sich mit doppelter Geschwindigkeit ($0.36\,\text{m/s}$ Suchfahrt, $0.44\,\text{m/s}$ Rückfahrt).
+  - **Brauner Knochen & Zufallsplatzierung:** Der Knochen ist braun gefärbt und wird bei jedem Start zufällig im $30^\circ$-Sektor platziert.
+  - **Zentrierte Kamera:** Die Webots-Kameraperspektive ist erhöht und zentriert über dem Startfeld ausgerichtet mit direktem Blick in den Suchsektor.
+  - **Fund & Rückkehr:** Nach Erreichen des Knochens ertönt genau ein Beller mit Lichteffekt, gefolgt von autonomer Rückfahrt ins Startfeld mit $180^\circ$-Drehung zurück zum Schiedsrichter und Freigabe für Folgekommandos.
+  - **Simulator Control Panel:** Kompakte GUI mit grossem Setup-Reset-Button und Live-Statusanzeige (Phase, Position, Sichtkegel, letzter empfangener Befehl).
+
+## Schnellstart Simulation
+
+```powershell
+# 1-Klick Start der Gesamtsimulation (Webots, Bridge, Such-Treiber, Control-Panel, Voice & Gestures):
+.\scripts\start_simulation.bat
+
+# Oder via PowerShell:
+.\scripts\start_simulation.ps1
+
+# Simulation während der Laufzeit zurücksetzen:
+.\scripts\reset_simulation.bat
+```
+
+## Detaillierte Dokumentation
+
+* 📖 **[Simulations-Handbuch & Setup-Guide](simulation/README.md)** – Vollständige Anleitung zur Installation von Pixi, Webots und den Python-Virtual-Environments, Fehlerbehebung, FSM-Ablauf und Parametern.
+* 🛰️ **[Schnittstellenspezifikation](docs/INTERFACES.md)** – ROS-2-Topics, Message-Typen, UDP-Socket-Bridge und Hardware-Mapping.
+
