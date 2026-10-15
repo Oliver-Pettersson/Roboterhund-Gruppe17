@@ -165,7 +165,11 @@ def generate_launch_description():
     # 5. Voice Control Prototyp
     voice_py = repo_root / "prototypes" / "voice_detection" / ".venv" / "Scripts" / "python.exe"
     if not voice_py.exists():
-        voice_py = Path(sys.executable)
+        legacy_voice_py = repo_root / "VoiceDetection" / ".venv" / "Scripts" / "python.exe"
+        if legacy_voice_py.exists():
+            voice_py = legacy_voice_py
+        else:
+            voice_py = Path(sys.executable)
     voice_script = repo_root / "prototypes" / "voice_detection" / "voice_control.py"
 
     voice_process = ExecuteProcess(
@@ -186,7 +190,11 @@ def generate_launch_description():
     # 6. Gesture Control Prototyp
     gesture_py = repo_root / "prototypes" / "gesture_recognition" / ".venv" / "Scripts" / "python.exe"
     if not gesture_py.exists():
-        gesture_py = Path(sys.executable)
+        legacy_gesture_py = repo_root / "GestureRecognition" / ".venv" / "Scripts" / "python.exe"
+        if legacy_gesture_py.exists():
+            gesture_py = legacy_gesture_py
+        else:
+            gesture_py = Path(sys.executable)
     gesture_script = repo_root / "prototypes" / "gesture_recognition" / "gesture_control.py"
 
     gesture_process = ExecuteProcess(
