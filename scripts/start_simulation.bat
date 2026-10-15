@@ -26,20 +26,18 @@ if not defined WEBOTS_HOME (
     )
 )
 
-REM If workspace has not been built yet, build it automatically
-if not exist "workspace\install\local_setup.bat" (
-    echo [INFO] Workspace not built yet. Running colcon build...
-    call pixi run cmd /c "cd workspace && colcon build --merge-install"
-    if errorlevel 1 (
-        echo [ERROR] colcon build failed.
-        pause
-        exit /b 1
-    )
+echo [INFO] Building ROS 2 workspace...
+call pixi run cmd /c "cd workspace && colcon build --merge-install"
+if errorlevel 1 (
+    echo [ERROR] colcon build failed.
+    pause
+    exit /b 1
 )
 
-echo ========================================================
-echo  Starting PREN Webots Simulation (Webots + ROS Bridge)
-echo ========================================================
+echo =========================================================================
+echo  Starting PREN Integrated Simulation Pipeline (Gruppe 17)
+echo  Webots R2025a + Bridge + Search Driver + Control Panel + Voice + Gestures
+echo =========================================================================
 pixi run cmd /c "cd workspace && call .\install\local_setup.bat && ros2 launch pren_bringup simulation.launch.py"
 
 if errorlevel 1 (

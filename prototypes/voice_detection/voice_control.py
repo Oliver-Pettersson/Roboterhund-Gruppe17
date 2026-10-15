@@ -18,6 +18,7 @@ import argparse
 import json
 import os
 import queue
+import socket
 import sys
 import threading
 import time
@@ -68,6 +69,42 @@ CONFIG = {
 }
 
 
+def send_udp_command(cmd_str: str, host: str = "127.0.0.1", port: int = 9876) -> None:
+    """Send command string over UDP to local robot simulation / controller."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.sendto(cmd_str.strip().upper().encode("utf-8"), (host, port))
+    except Exception as exc:
+        pass
+
+
+def start_state_listener(on_state_received: Callable[[dict], None], port: int = 9878):
+    """Hintergrund-UDP-Empfaenger fuer Roboter-Status von such_driver.py."""
+    def worker():
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            sock.bind(("127.0.0.1", port))
+            print(f"[VOICE] State listener bound to 127.0.0.1:{port}", flush=True)
+        except Exception as exc:
+            print(f"[VOICE] Could not bind state port {port}: {exc}", flush=True)
+            return
+
+        while True:
+            try:
+                data, _ = sock.recvfrom(2048)
+                if not data:
+                    continue
+                state_dict = json.loads(data.decode("utf-8"))
+                on_state_received(state_dict)
+            except Exception:
+                time.sleep(0.05)
+
+    t = threading.Thread(target=worker, daemon=True)
+    t.start()
+    return t
+
+
 # ============================================================================
 # VOICE DETECTOR ENGINE
 # ============================================================================
@@ -97,6 +134,8 @@ class VoiceDetector:
         self.pre_roll_chunks = int(self.cfg.get("pre_roll_chunks", 2))
 
         self.last_triggered_word: Optional[str] = None
+        self.robot_state = "IDLE"
+        self.robot_busy = False
         self.is_running = False
 
         self.audio_queue: queue.Queue[bytes] = queue.Queue(
@@ -243,6 +282,9 @@ class VoiceDetector:
                 # New distinct word detected -> TRIGGER!
                 self.last_triggered_word = tok
                 self.rec.Reset()
+
+                # Broadcast to ROS 2 simulation controller via UDP
+                send_udp_command(action_name)
 
                 if self.on_triggered:
                     self.on_triggered(tok, action_name)
@@ -394,6 +436,37 @@ def launch_gui(config: dict):
         bg="#0F172A",
     )
     subtitle_lbl.pack(anchor="w", pady=(2, 0))
+
+    # Live Robot State Status Bar
+    robot_bar = tk.Frame(root, bg="#1E293B", highlightthickness=1, highlightbackground="#334155")
+    robot_bar.pack(fill="x", padx=24, pady=(10, 0))
+
+    robot_status_title = tk.Label(
+        robot_bar,
+        text="ROBOTER STATUS:",
+        font=("Segoe UI", 9, "bold"),
+        fg="#94A3B8",
+        bg="#1E293B",
+    )
+    robot_status_title.pack(side="left", padx=(12, 6), pady=6)
+
+    robot_status_badge = tk.Label(
+        robot_bar,
+        text="🟢 BEREIT (IDLE)",
+        font=("Segoe UI", 9, "bold"),
+        fg="#10B981",
+        bg="#1E293B",
+    )
+    robot_status_badge.pack(side="left", pady=6)
+
+    robot_state_detail = tk.Label(
+        robot_bar,
+        text="Warten auf Sprach-/Gestenbefehl",
+        font=("Segoe UI", 9),
+        fg="#CBD5E1",
+        bg="#1E293B",
+    )
+    robot_state_detail.pack(side="right", padx=(6, 12), pady=6)
 
     # Big Card Display for the Triggered Keyword
     hero_frame = tk.Frame(root, bg="#1E293B", highlightthickness=1, highlightbackground="#334155")
@@ -674,9 +747,49 @@ def launch_gui(config: dict):
                 vol_canvas.coords(vol_rect, 0, 0, bar_len, 14)
                 vol_canvas.itemconfig(vol_rect, fill=bar_color)
 
+            elif ev_type == "ROBOT_STATE":
+                _, payload = ev
+                st_name = payload.get("state", "IDLE")
+                is_busy = payload.get("busy", False)
+                st_label = payload.get("label", "")
+
+                detector.robot_state = st_name
+                detector.robot_busy = is_busy
+
+                if is_busy:
+                    robot_status_badge.config(
+                        text="🔒 SUCHE AKTIV (SPERRE)",
+                        fg="#F59E0B",
+                    )
+                    robot_state_detail.config(
+                        text=f"{st_label}",
+                        fg="#FBBF24",
+                    )
+                else:
+                    robot_status_badge.config(
+                        text="🟢 BEREIT (IDLE)",
+                        fg="#10B981",
+                    )
+                    robot_state_detail.config(
+                        text="Bereit für 'Such' / Befehle",
+                        fg="#CBD5E1",
+                    )
+                    # Beim Uebergang zurueck in IDLE De-Duplication zuruecksetzen,
+                    # damit "Such" sofort erneut gesprochen werden kann!
+                    if detector.last_triggered_word is not None:
+                        detector.reset_state()
+                        hero_label.config(text="Bereit...", fg="#38BDF8")
+                        status_sub.config(text="Roboter bereit. 'Such' kann direkt gesprochen werden.", fg="#CBD5E1")
+                        for b in badge_labels.values():
+                            b.config(bg="#1E293B", fg="#64748B", highlightbackground="#334155")
+                        log_listbox.insert(0, f"[{time.strftime('%H:%M:%S')}] --- Roboter IDLE: 'Such' reaktiviert ---")
+
         root.after(30, process_gui_events)
 
     root.after(30, process_gui_events)
+
+    # Start robot state UDP listener thread
+    start_state_listener(lambda payload: gui_queue.put(("ROBOT_STATE", payload)))
 
     # Start audio worker thread
     audio_thread = threading.Thread(target=detector.process_loop, daemon=True)
@@ -717,6 +830,18 @@ def run_headless(config: dict):
         on_triggered=on_triggered_cb,
         on_ignored_repeat=on_ignored_repeat_cb,
     )
+
+    def on_state_received(payload: dict):
+        st_name = payload.get("state", "IDLE")
+        is_busy = payload.get("busy", False)
+        detector.robot_state = st_name
+        detector.robot_busy = is_busy
+        if st_name == "IDLE" and detector.last_triggered_word is not None:
+            detector.reset_state()
+            t_str = time.strftime("%H:%M:%S")
+            print(f"\n[{t_str}] [ROBOT STATE] IDLE - Roboter bereit! 'Such' kann direkt neu gesprochen werden.", flush=True)
+
+    start_state_listener(on_state_received)
 
     try:
         detector.process_loop()
