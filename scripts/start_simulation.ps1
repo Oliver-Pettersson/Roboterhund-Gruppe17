@@ -20,7 +20,11 @@ if (-not $env:WEBOTS_HOME) {
 }
 
 Write-Host "[INFO] Building ROS 2 workspace..." -ForegroundColor Cyan
-pixi run --manifest-path "$RepoRoot\pixi.toml" colcon build --merge-install
+pixi run --manifest-path "$RepoRoot\pixi.toml" powershell -Command "cd workspace; colcon build --merge-install"
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "colcon build failed."
+    exit 1
+}
 
 Write-Host "=========================================================================" -ForegroundColor Green
 Write-Host " Starting PREN Integrated Simulation Pipeline (Gruppe 17)" -ForegroundColor Green
