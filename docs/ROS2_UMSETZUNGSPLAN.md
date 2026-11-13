@@ -1,6 +1,6 @@
 # Umsetzungsplan: Prototypen in ROS-2-Struktur überführen
 
-Stand: 13.11.2026 · Branch `claude/project-thread-ahlzld` · Status: **Schritte 0 bis 8 umgesetzt** (Ergebnis: [ARCHITEKTUR.md](ARCHITEKTUR.md))
+Stand: 13.11.2026 · Branch `liano/ros2-struktur` · Status: **Schritte 0 bis 8 umgesetzt** (Ergebnis: [ARCHITEKTUR.md](ARCHITEKTUR.md))
 
 ## Abweichungen bei der Umsetzung
 
