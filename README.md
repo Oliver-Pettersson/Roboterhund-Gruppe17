@@ -22,8 +22,8 @@ Auf diesem Windows-System verwendet die Umgebung Cyclone DDS und bindet die loka
 
 | Pfad | Inhalt |
 | --- | --- |
-| `prototypes/` | Eigenständige Gesture- und Voice-Prototypen; noch keine ROS-2-Nodes |
-| `workspace/src/` | Vorgesehene ROS-2-Pakete für Wahrnehmung, Steuerung, Interfaces, Simulation und Bringup |
+| `prototypes/` | Ursprüngliche Gesture- und Voice-Prototypen und Testskripte (T1–T3) |
+| `workspace/src/` | ROS-2-Pakete: Interfaces, Wahrnehmung, Verhalten, Simulation und Bringup |
 | `simulation/webots/` | Bestehende Webots-Welten, Controller und PROTO-Modelle |
 | `models/bone_detection/` | Ablagehinweise für lokale Bone-Detection-Modelle |
 | `config/` | Projektweite Konfigurationen |
@@ -34,25 +34,22 @@ Generierte Pixi-Umgebungen, ROS-Buildartefakte, Caches sowie große Modelle und 
 
 ## Aktueller Stand
 
-- **ROS 2 Jazzy unter Windows:** Lauffähig über Pixi/RoboStack mit Cyclone DDS.
-- **Integrierte Gesamtsimulation (Merged Pipeline):**
-  - **180°-Startposition:** Der Roboter startet im Startfeld um $180^\circ$ abgewandt vom Suchbereich (Blick zum Schiedsrichter / Interaktionsbereich).
-  - **Sprach- & Gestensteuerung:** `prototypes/voice_detection` (Vosk) und `prototypes/gesture_recognition` (MediaPipe) starten parallel und übertragen Kommandos nahtlos über UDP (Port 9876) und ROS 2 (`/pren/command`).
-  - **Befehl «SUCH»:** Bei Sprachbefehl «Such» dreht sich der Roboter um $180^\circ$ zum Suchfeld. Während der gesamten Suche werden alle weiteren Befehle gesperrt, bis die Mission beendet ist.
-  - **Suchfahrt & 2x Geschwindigkeit:** Roboter bewegt sich mit doppelter Geschwindigkeit ($0.36\,\text{m/s}$ Suchfahrt, $0.44\,\text{m/s}$ Rückfahrt).
-  - **Brauner Knochen & Zufallsplatzierung:** Der Knochen ist braun gefärbt und wird bei jedem Start zufällig im $30^\circ$-Sektor platziert.
-  - **Zentrierte Kamera:** Die Webots-Kameraperspektive ist erhöht und zentriert über dem Startfeld ausgerichtet mit direktem Blick in den Suchsektor.
-  - **Fund & Rückkehr:** Nach Erreichen des Knochens ertönt genau ein Beller mit Lichteffekt, gefolgt von autonomer Rückfahrt ins Startfeld mit $180^\circ$-Drehung zurück zum Schiedsrichter und Freigabe für Folgekommandos.
-  - **Simulator Control Panel:** Kompakte GUI mit grossem Setup-Reset-Button und Live-Statusanzeige (Phase, Position, Sichtkegel, letzter empfangener Befehl).
+- **ROS 2 Jazzy unter Windows:** Lauffähig über Pixi/RoboStack mit Cyclone DDS. Vosk, MediaPipe und sounddevice sind in derselben Pixi-Umgebung installiert.
+- **ROS-2-Pakete** (`workspace/src`): Sprache, Gesten, Kamera, Knochenerkennung, Verhalten und Simulation laufen als eigene Nodes und sprechen über typisierte Messages aus `pren_interfaces`. Aufbau, Topics und Verhalten: [docs/ARCHITEKTUR.md](docs/ARCHITEKTUR.md).
+- **Befehle:** HIER, BRAV, SITZ, SUCH per Sprache; SITZ, PLATZ, AUF per Geste. Während SUCH läuft, werden alle anderen Befehle ignoriert.
+- **Simulation:** Webots mit Pioneer 3-DX. SUCH dreht zum Suchbereich, sucht den zufällig platzierten Knochen, bellt und kehrt zurück. Haltung und Lob werden als Text im 3D-Fenster angezeigt. Ein Bedienfenster sendet alle Befehle und setzt die Welt zurück.
+- **Tests:** `pixi run test` führt Unit-Tests, einen ROS-Integrationstest und die Linter aus.
+- **Prototypen** unter `prototypes/` bleiben für die Testskripte (T1–T3) unverändert. Der alte UDP-Ablauf ist mit `ros2 launch pren_bringup simulation_prototype.launch.py` weiterhin startbar.
 
 ## Schnellstart Simulation
 
 ```powershell
-# 1-Klick Start der Gesamtsimulation (Webots, Bridge, Such-Treiber, Control-Panel, Voice & Gestures):
+# Baut den Workspace und startet Webots, Bridge, Verhalten, Bedienfenster, Sprache und Gesten:
 .\scripts\start_simulation.bat
 
-# Oder via PowerShell:
-.\scripts\start_simulation.ps1
+# Bauen und testen:
+pixi run build
+pixi run test
 
 # Simulation während der Laufzeit zurücksetzen:
 .\scripts\reset_simulation.bat
@@ -61,5 +58,6 @@ Generierte Pixi-Umgebungen, ROS-Buildartefakte, Caches sowie große Modelle und 
 ## Detaillierte Dokumentation
 
 * 📖 **[Simulations-Handbuch & Setup-Guide](simulation/README.md)** – Vollständige Anleitung zur Installation von Pixi, Webots und den Python-Virtual-Environments, Fehlerbehebung, FSM-Ablauf und Parametern.
-* 🛰️ **[Schnittstellenspezifikation](docs/INTERFACES.md)** – ROS-2-Topics, Message-Typen, UDP-Socket-Bridge und Hardware-Mapping.
+* 🧩 **[ROS-2-Architektur](docs/ARCHITEKTUR.md)** – Pakete, Nodes, Topics, Verhalten, Bauen und Testen.
+* 🛰️ **[Schnittstellen des Prototyp-Ablaufs](docs/INTERFACES.md)** – UDP-Bridge und `such_driver` (bisheriger Stand).
 

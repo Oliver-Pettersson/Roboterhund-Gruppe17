@@ -1,3 +1,12 @@
 # ROS-2-Workspace
 
-Dieser Ordner ist für die ROS-2-Jazzy-Pakete `pren_perception`, `pren_control`, `pren_interfaces`, `pren_simulation` und `pren_bringup` vorgesehen. Die Paketgerüste werden erst angelegt, wenn die jeweiligen Nodes und Schnittstellen implementiert werden.
+| Paket | Inhalt |
+| --- | --- |
+| `pren_interfaces` | Gemeinsame Messages |
+| `pren_perception` | Kamera, Sprach-, Gesten- und Knochenerkennung |
+| `pren_behavior` | Verhalten des Hundes (Zustandsautomat, SUCH, HIER) |
+| `pren_simulation` | Webots-Bridge und Bedienfenster |
+| `pren_bringup` | Launch-Dateien und Konfiguration |
+| `pren_control` | Alter Prototyp-Ablauf (`such_driver`), nicht mehr weiterentwickelt |
+
+Aufbau und Topics: [docs/ARCHITEKTUR.md](../../docs/ARCHITEKTUR.md). Bauen und testen aus dem Repository-Root mit `pixi run build` und `pixi run test`.

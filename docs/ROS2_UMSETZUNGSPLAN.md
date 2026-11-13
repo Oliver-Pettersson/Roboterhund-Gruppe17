@@ -1,6 +1,14 @@
 # Umsetzungsplan: Prototypen in ROS-2-Struktur überführen
 
-Stand: 13.11.2026 · Branch `claude/project-thread-ahlzld` · Status: **Entwurf, wartet auf Freigabe**
+Stand: 13.11.2026 · Branch `claude/project-thread-ahlzld` · Status: **Schritte 0 bis 8 umgesetzt** (Ergebnis: [ARCHITEKTUR.md](ARCHITEKTUR.md))
+
+## Abweichungen bei der Umsetzung
+
+- Alle Befehle laufen ueber ein Topic `/pren/dog_command`; die Quelle steht im Feld `source`. Das ist einfacher als je ein Topic pro Quelle und genauso nachvollziehbar.
+- `Signal.msg` heisst `DogSignal.msg`, `RobotState` hat zusaetzlich `activity` (lesbarer Text).
+- Ohne Fund faehrt der Hund am Ende des Suchbereichs zurueck, statt sich im Kreis zu drehen. Geht der Knochen beim Anfahren laenger als 1,5 s verloren, sucht er weiter.
+- Die Spracherkennung unterdrueckt denselben Befehl 1,5 s lang statt bis zum naechsten anderen Befehl. Damit kann SITZ zweimal hintereinander gegeben werden.
+- Der Prototyp-Ablauf startet nicht mehr ueber ein Argument, sondern ueber `simulation_prototype.launch.py`.
 
 ## 1. Ausgangslage
 
