@@ -1,0 +1,16 @@
+# Parameter des Verhaltens (pren_behavior/dog_behavior_node).
+dog_behavior:
+  ros__parameters:
+    control_rate_hz: 20.0
+    # Nur Befehle aus der Aufgabenstellung annehmen
+    # (Sprache: HIER, BRAV, SITZ, SUCH; Gesten: SITZ, PLATZ, AUF).
+    enforce_command_sources: true
+    search:
+      search_speed: 0.36          # m/s beim Absuchen
+      return_speed: 0.44          # m/s bei der Rueckfahrt
+      contact_distance_m: 0.32    # ab diesem Abstand gilt der Knochen als erreicht
+      search_area_length_m: 4.6   # danach ohne Fund zurueck
+      celebrate_duration_s: 2.2
+    come_here:
+      distance_m: 0.5             # HIER: so weit faehrt der Hund auf die Person zu
+      speed: 0.2
