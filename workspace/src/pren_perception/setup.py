@@ -21,6 +21,8 @@ setup(
     extras_require={'test': ['pytest']},
     entry_points={
         'console_scripts': [
+            'camera_node = pren_perception.camera_node:main',
+            'gesture_command_node = pren_perception.gesture_command_node:main',
             'voice_command_node = pren_perception.voice_command_node:main',
         ],
     },
