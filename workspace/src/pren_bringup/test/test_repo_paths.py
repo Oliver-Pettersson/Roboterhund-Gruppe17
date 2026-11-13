@@ -1,6 +1,6 @@
 """Tests fuer die Pfadsuche der Launch-Dateien."""
 
-from pren_bringup.webots_paths import find_file, find_repo_root, find_webots_home
+from pren_bringup.repo_paths import find_file, find_repo_root, find_webots_home
 import pytest
 
 

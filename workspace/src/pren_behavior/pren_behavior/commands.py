@@ -2,24 +2,26 @@
 
 from enum import Enum, IntEnum
 
+from pren_interfaces.msg import DogCommand
+
 
 class Command(IntEnum):
-    """Befehle an den Hund. Die Werte entsprechen pren_interfaces/DogCommand."""
+    """Befehle an den Hund. Die Werte kommen aus pren_interfaces/DogCommand."""
 
-    HIER = 1
-    BRAV = 2
-    SITZ = 3
-    SUCH = 4
-    PLATZ = 5
-    AUF = 6
+    HIER = DogCommand.HIER
+    BRAV = DogCommand.BRAV
+    SITZ = DogCommand.SITZ
+    SUCH = DogCommand.SUCH
+    PLATZ = DogCommand.PLATZ
+    AUF = DogCommand.AUF
 
 
 class CommandSource(str, Enum):
-    """Woher ein Befehl kommt. Die Werte entsprechen DogCommand.SOURCE_*."""
+    """Woher ein Befehl kommt. Die Werte kommen aus DogCommand.SOURCE_*."""
 
-    VOICE = 'voice'
-    GESTURE = 'gesture'
-    GUI = 'gui'
+    VOICE = DogCommand.SOURCE_VOICE
+    GESTURE = DogCommand.SOURCE_GESTURE
+    GUI = DogCommand.SOURCE_GUI
 
 
 # Laut Aufgabenstellung: Sprache HIER, BRAV, SITZ, SUCH; Gesten SITZ, PLATZ, AUF.

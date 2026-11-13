@@ -14,7 +14,7 @@ from launch.actions import DeclareLaunchArgument, ExecuteProcess, TimerAction
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
-from pren_bringup.webots_paths import find_file, find_repo_root, find_webots_home
+from pren_bringup.repo_paths import find_file, find_repo_root, find_webots_home
 
 WEBOTS_PORT = 1234
 
