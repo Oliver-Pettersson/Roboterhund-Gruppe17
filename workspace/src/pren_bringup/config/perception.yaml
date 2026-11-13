@@ -1,0 +1,23 @@
+# Parameter der Wahrnehmung (pren_perception).
+# Die Modellpfade setzt die Launch-Datei automatisch (models/ oder prototypes/).
+
+camera:
+  ros__parameters:
+    device: 0            # Laptop-Kamera = 0, externe USB-Kamera meist 1
+    width: 640
+    height: 480
+    fps: 15.0
+
+gesture_command:
+  ros__parameters:
+    window_size: 5       # so viele Bilder werden betrachtet
+    min_agreeing: 4      # so viele davon muessen dieselbe Geste zeigen
+    cooldown_s: 1.0      # gehaltene Geste loest fruehestens nach dieser Zeit erneut aus
+
+voice_command:
+  ros__parameters:
+    device: -1           # -1 = Standardmikrofon; Liste: python -m sounddevice
+    volume_threshold: 750.0
+    hangover_chunks: 4   # 400 ms Nachlauf nach dem Sprechen
+    pre_roll_chunks: 2   # 200 ms Vorlauf vor dem Sprechen
+    repeat_cooldown_s: 1.5

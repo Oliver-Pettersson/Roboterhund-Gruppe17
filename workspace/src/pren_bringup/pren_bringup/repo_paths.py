@@ -32,3 +32,35 @@ def find_file(root: Path, file_name: str) -> Path:
     for match in root.rglob(file_name):
         return match
     raise RuntimeError(f'{file_name} wurde unter {root} nicht gefunden.')
+
+
+VOSK_MODEL_NAME = 'vosk-model-small-de-0.15'
+HAND_MODEL_NAME = 'hand_landmarker.task'
+
+
+def find_first_existing(repo_root: Path, candidates) -> Path:
+    """Erster vorhandener Pfad (relativ zum Repository) aus der Liste."""
+    for relative in candidates:
+        path = repo_root / relative
+        if path.exists():
+            return path
+    searched = ', '.join(str(Path(c)) for c in candidates)
+    raise RuntimeError(f'Nicht gefunden unter {repo_root}: {searched}')
+
+
+def find_vosk_model(repo_root: Path) -> Path:
+    """Ordner des deutschen Vosk-Modells (neuer Ort zuerst, dann Prototyp-Ordner)."""
+    return find_first_existing(repo_root, [
+        f'models/voice/{VOSK_MODEL_NAME}',
+        f'prototypes/voice_detection/models/{VOSK_MODEL_NAME}',
+        f'VoiceDetection/models/{VOSK_MODEL_NAME}',
+    ])
+
+
+def find_hand_model(repo_root: Path) -> Path:
+    """MediaPipe-Modell fuer Handpunkte (neuer Ort zuerst, dann Prototyp-Ordner)."""
+    return find_first_existing(repo_root, [
+        f'models/gesture/{HAND_MODEL_NAME}',
+        f'prototypes/gesture_recognition/{HAND_MODEL_NAME}',
+        f'GestureRecognition/{HAND_MODEL_NAME}',
+    ])

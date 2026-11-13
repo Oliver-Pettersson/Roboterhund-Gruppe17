@@ -28,7 +28,7 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Host "=========================================================================" -ForegroundColor Green
 Write-Host " Starting PREN Integrated Simulation Pipeline (Gruppe 17)" -ForegroundColor Green
-Write-Host " Webots R2025a + Bridge + Search Driver + Control Panel + Voice + Gestures" -ForegroundColor Green
+Write-Host " Webots + Bridge + dog_behavior + Bedienfenster + Sprache + Gesten (ROS 2)" -ForegroundColor Green
 Write-Host "=========================================================================" -ForegroundColor Green
 
 pixi run powershell -NoExit -Command "cd workspace; . .\install\local_setup.ps1; ros2 launch pren_bringup simulation.launch.py"

@@ -36,7 +36,7 @@ if errorlevel 1 (
 
 echo =========================================================================
 echo  Starting PREN Integrated Simulation Pipeline (Gruppe 17)
-echo  Webots R2025a + Bridge + Search Driver + Control Panel + Voice + Gestures
+echo  Webots + Bridge + dog_behavior + Bedienfenster + Sprache + Gesten (ROS 2)
 echo =========================================================================
 pixi run cmd /c "cd workspace && call .\install\local_setup.bat && ros2 launch pren_bringup simulation.launch.py"
 
