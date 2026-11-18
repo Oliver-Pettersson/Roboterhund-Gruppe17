@@ -21,3 +21,5 @@ voice_command:
     hangover_chunks: 4   # 400 ms Nachlauf nach dem Sprechen
     pre_roll_chunks: 2   # 200 ms Vorlauf vor dem Sprechen
     repeat_cooldown_s: 1.5
+    min_confidence: 0.7  # Mindestsicherheit der Erkennung (0 bis 1)
+    max_utterance_s: 2.0 # laengere Aeusserungen sind Gespraeche, kein Befehl

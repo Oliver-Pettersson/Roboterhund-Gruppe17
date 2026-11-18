@@ -1,18 +1,27 @@
 """
-Findet Befehlswoerter im erkannten Text und unterdrueckt Wiederholungen.
+Entscheidet, ob eine abgeschlossene Aeusserung ein Sprachbefehl ist.
 
-Die Spracherkennung liefert waehrend einer Aeusserung mehrmals Zwischenergebnisse.
-Damit ein Wort nur einen Befehl ausloest, wird derselbe Befehl innerhalb von
-repeat_cooldown_s nach dem letzten Ausloesen ignoriert. Ein anderer Befehl wird
-sofort angenommen.
+Vosk mit fester Wortliste ordnet jedes gehoerte Wort dem aehnlichsten Wort der Liste zu.
+Mit nur den vier Befehlen wird deshalb fast jedes Gespraech zu Befehlen. Drei Regeln
+verhindern das:
+
+1. Die Wortliste enthaelt neben den Befehlen viele Fuellwoerter (FILLER_WORDS). Fremde
+   Woerter landen dann meist dort statt bei einem Befehl.
+2. Ein Befehl wird nur angenommen, wenn die ganze Aeusserung aus genau diesem einen Wort
+   besteht. Wer "Sitz!" ruft, sagt nichts anderes; Gespraeche bestehen aus vielen Woertern.
+3. Die Erkennung muss sich sicher sein (min_confidence, Standard 0.7).
+
+Zusaetzlich unterdrueckt RepeatFilter, dass derselbe Befehl kurz hintereinander doppelt
+ausgeloest wird.
 """
 
+from dataclasses import dataclass
 import math
-from typing import Dict, Optional
+from typing import Dict, Optional, Sequence
 
 from pren_perception.commands import Command
 
-# Woerter, die das Vosk-Modell erkennen soll, und der zugehoerige Befehl.
+# Woerter, die einen Befehl ausloesen (laut Aufgabe nur diese vier per Sprache).
 VOICE_KEYWORDS: Dict[str, Command] = {
     'hier': Command.HIER,
     'brav': Command.BRAV,
@@ -20,15 +29,45 @@ VOICE_KEYWORDS: Dict[str, Command] = {
     'such': Command.SUCH,
 }
 
+# Woerter, die Vosk ebenfalls erkennen darf, die aber nie einen Befehl ausloesen.
+FILLER_WORDS = (
+    # aehnlich klingend wie ein Befehl. Reime auf "hier" (wir, mir, vier ...) fehlen
+    # bewusst: sie verdraengen bei Rauschen das echte "hier" (gemessen mit den Testaufnahmen).
+    'sitzen', 'setzen', 'suchen', 'sucht', 'hierher', 'braun', 'brauchen', 'sie', 'sicht',
+    'ziel', 'zug', 'buch', 'tuch', 'platz', 'auf',
+    # haeufig im Gespraech
+    'ja', 'nein', 'danke', 'bitte', 'hallo', 'gut', 'genau', 'ich', 'du', 'er', 'es', 'das', 'der',
+    'die', 'und', 'oder', 'aber', 'ist', 'nicht', 'mal', 'so', 'was', 'wie', 'wo', 'wann', 'schon',
+    'noch', 'jetzt', 'heute', 'morgen', 'haben', 'sein', 'machen', 'gehen', 'kommen', 'sehen',
+    'eins', 'zwei', 'drei', 'zehn', 'uhr', 'mit', 'von', 'zu', 'in', 'an', 'auch', 'nur', 'sehr',
+)
+
 UNKNOWN_TOKEN = '[unk]'
+RECOGNIZER_WORDS = (*VOICE_KEYWORDS, *FILLER_WORDS)
+
+
+@dataclass(frozen=True)
+class RecognizedWord:
+    """Ein von Vosk erkanntes Wort mit Sicherheit (0 bis 1)."""
+
+    text: str
+    confidence: float
 
 
 def find_command(text: str, keywords: Dict[str, Command] = VOICE_KEYWORDS) -> Optional[Command]:
-    """Erster Befehl im Text oder None. Gross-/Kleinschreibung spielt keine Rolle."""
-    for word in text.lower().split():
-        if word in keywords:
-            return keywords[word]
-    return None
+    """Befehl, wenn der Text genau aus einem Befehlswort besteht, sonst None."""
+    words = text.lower().split()
+    if len(words) != 1:
+        return None
+    return keywords.get(words[0])
+
+
+def command_in_utterance(words: Sequence[RecognizedWord], min_confidence: float,
+                         keywords: Dict[str, Command] = VOICE_KEYWORDS) -> Optional[Command]:
+    """Befehl, wenn die Aeusserung aus genau einem sicher erkannten Befehlswort besteht."""
+    if len(words) != 1 or words[0].confidence < min_confidence:
+        return None
+    return find_command(words[0].text, keywords)
 
 
 class RepeatFilter:

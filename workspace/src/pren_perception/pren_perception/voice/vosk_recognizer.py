@@ -1,10 +1,10 @@
-"""Duenne Huelle um Vosk: erkennt nur die vorgegebenen Woerter (Grammatik)."""
+"""Duenne Huelle um Vosk: erkennt nur die vorgegebenen Woerter und liefert ihre Sicherheit."""
 
 import json
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, List
 
-from pren_perception.voice.keyword_spotter import UNKNOWN_TOKEN
+from pren_perception.voice.keyword_spotter import RecognizedWord, UNKNOWN_TOKEN
 from vosk import KaldiRecognizer, Model, SetLogLevel
 
 
@@ -17,18 +17,23 @@ class VoskRecognizer:
         SetLogLevel(-1)
         grammar = json.dumps([*words, UNKNOWN_TOKEN])
         self._recognizer = KaldiRecognizer(Model(str(model_path)), sample_rate, grammar)
-        self._recognizer.SetWords(False)
+        self._recognizer.SetWords(True)
 
-    def accept(self, chunk: bytes) -> str:
-        """Gibt einen Audioblock hinein und liefert den bisher erkannten Text."""
+    def accept(self, chunk: bytes) -> List[RecognizedWord]:
+        """Gibt einen Audioblock hinein. Liefert Woerter, sobald Vosk einen Abschnitt beendet."""
         if self._recognizer.AcceptWaveform(chunk):
-            return json.loads(self._recognizer.Result()).get('text', '')
-        return json.loads(self._recognizer.PartialResult()).get('partial', '')
+            return _words(self._recognizer.Result())
+        return []
 
-    def finish(self) -> str:
-        """Schliesst die Aeusserung ab und liefert den endgueltigen Text."""
-        return json.loads(self._recognizer.Result()).get('text', '')
+    def finish(self) -> List[RecognizedWord]:
+        """Schliesst die Aeusserung ab und liefert die restlichen Woerter."""
+        return _words(self._recognizer.FinalResult())
 
     def reset(self) -> None:
         """Verwirft alles bisher Gehoerte."""
         self._recognizer.Reset()
+
+
+def _words(result_json: str) -> List[RecognizedWord]:
+    result = json.loads(result_json).get('result', [])
+    return [RecognizedWord(item['word'], float(item.get('conf', 0.0))) for item in result]

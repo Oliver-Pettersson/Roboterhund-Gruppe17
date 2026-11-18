@@ -9,6 +9,8 @@ Parameter:
     model_path           Ordner des Vosk-Modells (vosk-model-small-de-0.15)
     device               Index des Mikrofons, -1 = Standardgeraet
     volume_threshold     RMS-Schwelle des Rauschfilters
+    min_confidence       Mindestsicherheit der Erkennung (0 bis 1)
+    max_utterance_s      laengere Aeusserungen gelten als Gespraech und werden verworfen
     repeat_cooldown_s    so lange wird derselbe Befehl nicht erneut gesendet
 """
 
@@ -17,7 +19,11 @@ import threading
 import time
 
 from pren_interfaces.msg import DogCommand
-from pren_perception.voice.keyword_spotter import RepeatFilter, VOICE_KEYWORDS
+from pren_perception.voice.keyword_spotter import (
+    RECOGNIZER_WORDS,
+    RepeatFilter,
+    VOICE_KEYWORDS,
+)
 from pren_perception.voice.microphone import Microphone
 from pren_perception.voice.noise_gate import NoiseGate
 from pren_perception.voice.voice_command_detector import VoiceCommandDetector
@@ -41,15 +47,19 @@ class VoiceCommandNode(Node):
         self.declare_parameter('hangover_chunks', 4)
         self.declare_parameter('pre_roll_chunks', 2)
         self.declare_parameter('repeat_cooldown_s', 1.5)
+        self.declare_parameter('min_confidence', 0.7)
+        self.declare_parameter('max_utterance_s', 2.0)
 
         model_path = Path(self.get_parameter('model_path').value)
         self.get_logger().info(f'Lade Vosk-Modell {model_path} ...')
         self._detector = VoiceCommandDetector(
-            recognizer=VoskRecognizer(model_path, SAMPLE_RATE, VOICE_KEYWORDS),
+            recognizer=VoskRecognizer(model_path, SAMPLE_RATE, RECOGNIZER_WORDS),
             gate=NoiseGate(threshold=self.get_parameter('volume_threshold').value,
                            hangover_chunks=self.get_parameter('hangover_chunks').value,
                            pre_roll_chunks=self.get_parameter('pre_roll_chunks').value),
             repeat_filter=RepeatFilter(self.get_parameter('repeat_cooldown_s').value),
+            min_confidence=self.get_parameter('min_confidence').value,
+            max_utterance_s=self.get_parameter('max_utterance_s').value,
         )
 
         device = self.get_parameter('device').value

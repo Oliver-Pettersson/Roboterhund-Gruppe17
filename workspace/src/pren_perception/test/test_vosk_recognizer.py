@@ -24,14 +24,15 @@ MODEL = find_model()
 
 
 @pytest.mark.skipif(MODEL is None, reason='Vosk-Modell nicht vorhanden')
-def test_model_loads_and_silence_gives_no_command():
-    from pren_perception.voice.keyword_spotter import find_command, VOICE_KEYWORDS
+def test_model_loads_and_silence_gives_no_words():
+    from pren_perception.voice.keyword_spotter import RECOGNIZER_WORDS
     from pren_perception.voice.vosk_recognizer import VoskRecognizer
 
-    recognizer = VoskRecognizer(MODEL, 16000, VOICE_KEYWORDS)
-    texts = [recognizer.accept(QUIET) for _ in range(10)] + [recognizer.finish()]
+    recognizer = VoskRecognizer(MODEL, 16000, RECOGNIZER_WORDS)
+    words = [word for _ in range(10) for word in recognizer.accept(QUIET)]
+    words += recognizer.finish()
 
-    assert all(find_command(text) is None for text in texts)
+    assert words == []
 
 
 def test_missing_model_raises_clear_error(tmp_path):
