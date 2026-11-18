@@ -64,3 +64,26 @@ def find_hand_model(repo_root: Path) -> Path:
         f'prototypes/gesture_recognition/{HAND_MODEL_NAME}',
         f'GestureRecognition/{HAND_MODEL_NAME}',
     ])
+
+
+def webots_environment(environ, webots_home: Path) -> dict:
+    """
+    Umgebung fuer den Webots-Simulator ohne die Pixi/Conda-Eintraege.
+
+    Webots bringt ein eigenes Qt mit. Unter Pixi zeigen PATH und QT_PLUGIN_PATH auf
+    das Qt der ROS-Umgebung; Webots laedt dann fremde Qt-Plugins und stuerzt beim
+    Start ab (Windows-Fehler 0xC0000374). Deshalb werden alle Variablen entfernt,
+    die in die Pixi-Umgebung zeigen, und PATH wird um deren Ordner bereinigt.
+    """
+    prefix = os.path.normcase(environ.get('CONDA_PREFIX', ''))
+
+    def points_into_pixi(value: str) -> bool:
+        return bool(prefix) and prefix in os.path.normcase(value)
+
+    clean = {name: value for name, value in environ.items()
+             if name.upper() != 'PATH' and not points_into_pixi(value)}
+    path = environ.get('PATH', environ.get('Path', ''))
+    clean['PATH'] = os.pathsep.join(
+        entry for entry in path.split(os.pathsep) if entry and not points_into_pixi(entry))
+    clean['WEBOTS_HOME'] = str(webots_home)
+    return clean

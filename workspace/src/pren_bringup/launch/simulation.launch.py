@@ -7,6 +7,7 @@ Aufruf:
     ros2 launch pren_bringup simulation.launch.py control_panel:=false
 """
 
+import os
 from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
@@ -21,7 +22,12 @@ from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
-from pren_bringup.repo_paths import find_file, find_repo_root, find_webots_home
+from pren_bringup.repo_paths import (
+    find_file,
+    find_repo_root,
+    find_webots_home,
+    webots_environment,
+)
 
 WEBOTS_PORT = 1234
 
@@ -37,7 +43,8 @@ def generate_launch_description():
     webots = ExecuteProcess(
         cmd=[str(find_file(webots_home, 'webots.exe')), f'--port={WEBOTS_PORT}',
              '--mode=realtime', str(simulation_dir / 'worlds' / 'pren_simulation.wbt')],
-        additional_env=webots_env,
+        # Webots ohne Pixi-Umgebung starten, sonst laedt es fremde Qt-Plugins und stuerzt ab.
+        env=webots_environment(os.environ, webots_home),
         output='screen',
     )
     webots_bridge = ExecuteProcess(
