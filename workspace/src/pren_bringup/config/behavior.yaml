@@ -5,6 +5,8 @@ dog_behavior:
     # Nur Befehle aus der Aufgabenstellung annehmen
     # (Sprache: HIER, BRAV, SITZ, SUCH; Gesten: SITZ, PLATZ, AUF).
     enforce_command_sources: true
+    odom_timeout_s: 0.5         # ohne frische Odometrie haelt der Hund an
+    bone_timeout_s: 0.5         # aeltere Knochenmeldungen werden verworfen
     search:
       search_speed: 0.36          # m/s beim Absuchen
       return_speed: 0.44          # m/s bei der Rueckfahrt

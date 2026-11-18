@@ -14,6 +14,9 @@ Veroeffentlicht:
     /pren/posture        pren_interfaces/Posture      bei Aenderung (latched)
     /pren/dog_signal     pren_interfaces/DogSignal    bei Ereignis
     /pren/robot_state    pren_interfaces/RobotState   mit control_rate_hz
+
+Sicherheit: Kommt laenger als odom_timeout_s keine Odometrie, haelt der Hund an.
+Knochenmeldungen, die aelter als bone_timeout_s sind, gelten als "kein Knochen".
 """
 
 import math
@@ -28,6 +31,7 @@ from pren_behavior.dog_state_machine import (
     DogStateMachine,
     Posture as PostureValue,
 )
+from pren_behavior.latest_reading import LatestReading
 from pren_behavior.motion import BoneObservation, NO_BONE, Pose2D
 from pren_behavior.search_mission import SearchParameters
 from pren_interfaces.msg import BoneDetection, DogCommand, DogSignal, Posture, RobotState
@@ -50,8 +54,9 @@ class DogBehaviorNode(Node):
     def __init__(self):
         super().__init__('dog_behavior')
         self._machine = DogStateMachine(self._read_parameters())
-        self._pose: Optional[Pose2D] = None
-        self._bone = NO_BONE
+        # Ohne frische Odometrie wird angehalten, alte Knochenmeldungen werden verworfen.
+        self._pose = LatestReading[Pose2D](self.get_parameter('odom_timeout_s').value)
+        self._bone = LatestReading[BoneObservation](self.get_parameter('bone_timeout_s').value)
         self._published_posture: Optional[PostureValue] = None
 
         self._cmd_vel_pub = self.create_publisher(Twist, '/cmd_vel', 10)
@@ -75,6 +80,8 @@ class DogBehaviorNode(Node):
         come_defaults = ComeHereParameters()
         self.declare_parameter('control_rate_hz', 20.0)
         self.declare_parameter('enforce_command_sources', True)
+        self.declare_parameter('odom_timeout_s', 0.5)
+        self.declare_parameter('bone_timeout_s', 0.5)
         self.declare_parameter('search.search_speed', search_defaults.search_speed)
         self.declare_parameter('search.return_speed', search_defaults.return_speed)
         self.declare_parameter('search.contact_distance_m', search_defaults.contact_distance_m)
@@ -122,28 +129,39 @@ class DogBehaviorNode(Node):
                                    f'{result.reason}')
 
     def _on_bone(self, msg: BoneDetection) -> None:
-        self._bone = BoneObservation(detected=msg.detected,
-                                     distance_m=msg.distance_m,
-                                     bearing_rad=msg.bearing_rad)
+        observation = BoneObservation(detected=msg.detected, distance_m=msg.distance_m,
+                                      bearing_rad=msg.bearing_rad)
+        self._bone.update(observation, self._now())
 
     def _on_odometry(self, msg: Odometry) -> None:
         pose = msg.pose.pose
-        self._pose = Pose2D(x=pose.position.x, y=pose.position.y,
-                            yaw=yaw_from_quaternion(pose.orientation.z, pose.orientation.w))
+        self._pose.update(
+            Pose2D(x=pose.position.x, y=pose.position.y,
+                   yaw=yaw_from_quaternion(pose.orientation.z, pose.orientation.w)),
+            self._now())
 
     def _on_reset(self, _msg: Empty) -> None:
         self.get_logger().info('Reset: Verhalten in Ausgangszustand.')
         self._machine.reset()
-        self._bone = NO_BONE
+        self._bone.clear()
 
     # ----------------------------------------------------------- Regelschritt
 
-    def _control_step(self) -> None:
-        if self._pose is None:
-            return  # Ohne Odometrie kann der Hund nicht sicher fahren.
+    def _now(self) -> float:
+        return self.get_clock().now().nanoseconds * 1e-9
 
-        now = self.get_clock().now().nanoseconds * 1e-9
-        output = self._machine.update(self._pose, self._bone, now)
+    def _control_step(self) -> None:
+        now = self._now()
+        pose = self._pose.get(now)
+        if pose is None:
+            # Ohne aktuelle Position kann der Hund nicht sicher fahren: anhalten.
+            self._cmd_vel_pub.publish(Twist())
+            if self._pose.ever_received:
+                self.get_logger().warning('Keine aktuelle Odometrie, Hund haelt an.',
+                                          throttle_duration_sec=2.0)
+            return
+
+        output = self._machine.update(pose, self._bone.get(now, NO_BONE), now)
 
         twist = Twist()
         twist.linear.x = output.velocity.linear

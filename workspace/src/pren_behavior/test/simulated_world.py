@@ -1,7 +1,8 @@
 """Minimale Welt fuer Tests: Roboter mit Differentialantrieb und Knochen mit Sichtkegel."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import math
+import random
 
 from pren_behavior.motion import BoneObservation, normalize_angle, Pose2D, Velocity
 
@@ -18,6 +19,11 @@ class SimulatedWorld:
     bone_y: float = 0.3
     view_range_m: float = 3.0
     view_half_angle_rad: float = math.radians(22.5)
+    # Messfehler der Kamera: Rauschen auf Winkel und Distanz, Anteil verpasster Bilder
+    bearing_noise_rad: float = 0.0
+    distance_noise_m: float = 0.0
+    dropout_probability: float = 0.0
+    rng: random.Random = field(default_factory=lambda: random.Random(0))
 
     def drive(self, velocity: Velocity, dt: float) -> None:
         """Bewegt den Roboter fuer dt Sekunden mit dem Fahrbefehl."""
@@ -34,6 +40,10 @@ class SimulatedWorld:
         bearing = normalize_angle(
             math.atan2(self.bone_y - self.pose.y, self.bone_x - self.pose.x) - self.pose.yaw)
         visible = distance <= self.view_range_m and abs(bearing) <= self.view_half_angle_rad
-        if not visible:
+        if not visible or self.rng.random() < self.dropout_probability:
             return BoneObservation()
-        return BoneObservation(detected=True, distance_m=distance, bearing_rad=bearing)
+        return BoneObservation(
+            detected=True,
+            distance_m=max(0.0, distance + self.rng.gauss(0.0, self.distance_noise_m)),
+            bearing_rad=bearing + self.rng.gauss(0.0, self.bearing_noise_rad),
+        )

@@ -61,6 +61,7 @@ class SearchParameters:
     sweep_period_s: float = 3.0
     search_area_length_m: float = 4.6      # danach wird ohne Fund umgekehrt
     contact_distance_m: float = 0.32       # Abstand, ab dem der Knochen als erreicht gilt
+    contact_confirmations: int = 3         # so viele Messwerte in Folge muessen das bestaetigen
     bone_lost_timeout_s: float = 1.5       # so lange darf der Knochen beim Anfahren fehlen
     celebrate_duration_s: float = 2.2
     home_tolerance_m: float = 0.15
@@ -88,6 +89,7 @@ class SearchMission:
         self._phase = SearchPhase.TURN_TO_SEARCH_AREA
         self._phase_started_at = now
         self._bone_last_seen_at = now
+        self._contact_readings = 0
         self._events: List[SearchEvent] = []
 
     @property
@@ -153,7 +155,13 @@ class SearchMission:
             return Velocity(linear=self._params.approach_min_speed)
 
         self._bone_last_seen_at = now
+        # Ein einzelner zu kurzer Messwert reicht nicht: mehrere Bilder hintereinander
+        # muessen den Kontaktabstand bestaetigen.
         if bone.distance_m <= self._params.contact_distance_m:
+            self._contact_readings += 1
+        else:
+            self._contact_readings = 0
+        if self._contact_readings >= self._params.contact_confirmations:
             self._events.append(SearchEvent.BONE_FOUND)
             self._enter(SearchPhase.CELEBRATE, now)
             return STOP

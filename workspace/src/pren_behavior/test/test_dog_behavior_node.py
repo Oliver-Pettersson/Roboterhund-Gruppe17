@@ -3,6 +3,7 @@
 import math
 import time
 
+from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from pren_behavior.dog_behavior_node import DogBehaviorNode, yaw_from_quaternion
 from pren_interfaces.msg import DogCommand, DogSignal, Posture, RobotState
@@ -20,14 +21,18 @@ class BehaviorHarness(Node):
         super().__init__('behavior_test_harness')
         self.command_pub = self.create_publisher(DogCommand, '/pren/dog_command', 10)
         self.odom_pub = self.create_publisher(Odometry, '/odom', 10)
-        self.states, self.postures, self.signals = [], [], []
+        self.states, self.postures, self.signals, self.velocities = [], [], [], []
+        self.odometry_running = True
         latched = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
         self.create_subscription(RobotState, '/pren/robot_state', self.states.append, 10)
         self.create_subscription(Posture, '/pren/posture', self.postures.append, latched)
         self.create_subscription(DogSignal, '/pren/dog_signal', self.signals.append, 10)
+        self.create_subscription(Twist, '/cmd_vel', self.velocities.append, 10)
         self.create_timer(0.05, self.publish_start_pose)
 
     def publish_start_pose(self):
+        if not self.odometry_running:
+            return
         odom = Odometry()
         odom.pose.pose.orientation.z = math.sin(math.pi / 2)
         odom.pose.pose.orientation.w = math.cos(math.pi / 2)
@@ -37,9 +42,13 @@ class BehaviorHarness(Node):
         self.command_pub.publish(DogCommand(command=command, source=source, confidence=1.0))
 
 
+# Eigene ROS-Domain, damit der Test nicht mit einer laufenden Simulation spricht.
+TEST_DOMAIN_ID = 87
+
+
 @pytest.fixture
 def ros():
-    rclpy.init()
+    rclpy.init(domain_id=TEST_DOMAIN_ID)
     behavior, harness = DogBehaviorNode(), BehaviorHarness()
     executor = SingleThreadedExecutor()
     executor.add_node(behavior)
@@ -122,3 +131,28 @@ def test_unknown_command_is_dropped(ros):
 def test_yaw_from_quaternion_matches_rotation_about_z():
     angle = 2.0
     assert yaw_from_quaternion(math.sin(angle / 2), math.cos(angle / 2)) == pytest.approx(angle)
+
+
+def test_robot_stops_when_odometry_stops(ros):
+    harness, spin_until = ros
+    spin_until(lambda: harness.states)
+    harness.send(DogCommand.SUCH, DogCommand.SOURCE_VOICE)
+    assert spin_until(lambda: harness.velocities and harness.velocities[-1].angular.z != 0.0)
+
+    harness.odometry_running = False
+    spin_until(lambda: False, timeout=1.0)
+
+    last = harness.velocities[-1]
+    assert last.linear.x == 0.0 and last.angular.z == 0.0
+
+
+def test_robot_drives_on_when_odometry_returns(ros):
+    harness, spin_until = ros
+    spin_until(lambda: harness.states)
+    harness.send(DogCommand.SUCH, DogCommand.SOURCE_VOICE)
+    harness.odometry_running = False
+    spin_until(lambda: False, timeout=1.0)
+
+    harness.odometry_running = True
+
+    assert spin_until(lambda: harness.velocities[-1].angular.z != 0.0)
