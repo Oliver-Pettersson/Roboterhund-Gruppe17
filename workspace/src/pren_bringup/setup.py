@@ -9,7 +9,7 @@ package_name = 'pren_bringup'
 
 setup(
     name=package_name,
-    version='0.0.0',
+    version='0.1.0',
     packages=find_packages(exclude=['test']),
     data_files=[
         (
@@ -23,6 +23,10 @@ setup(
         (
             os.path.join('share', package_name, 'launch'),
             glob('launch/*.launch.py'),
+        ),
+        (
+            os.path.join('share', package_name, 'config'),
+            glob('config/*.yaml'),
         ),
     ],
     install_requires=['setuptools'],

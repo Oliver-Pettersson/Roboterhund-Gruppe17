@@ -10,9 +10,12 @@ Recognized Commands:
 """
 
 import argparse
+import json
 import os
 from pathlib import Path
+import socket
 import sys
+import threading
 import time
 from typing import Callable, List, Optional
 import urllib.request
@@ -57,6 +60,15 @@ def ensure_model_exists():
         print(f"[OK] Model saved to {MODEL_PATH} ({MODEL_PATH.stat().st_size / 1e6:.1f} MB)")
 
 
+def send_udp_command(cmd_str: str, host: str = "127.0.0.1", port: int = 9876) -> None:
+    """Send command string over UDP to local robot simulation / controller."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.sendto(cmd_str.strip().upper().encode("utf-8"), (host, port))
+    except Exception:
+        pass
+
+
 class GestureController:
     """Captures camera frames, runs MediaPipe, and triggers robot dog gesture events."""
 
@@ -95,6 +107,44 @@ class GestureController:
 
         self.cap: Optional[cv2.VideoCapture] = None
         self.fps: float = 0.0
+
+        # Robot state centralization
+        self.robot_state = "IDLE"
+        self.robot_busy = False
+        self.robot_state_label = "Warten auf Befehl"
+        self._start_state_listener()
+
+    def _start_state_listener(self, port: int = 9879):
+        """Hintergrund-UDP-Empfaenger fuer Roboter-Status von such_driver.py."""
+        def worker():
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                sock.bind(("127.0.0.1", port))
+                print(f"[GESTURE] State listener bound to 127.0.0.1:{port}", flush=True)
+            except Exception as exc:
+                print(f"[GESTURE] Could not bind state port {port}: {exc}", flush=True)
+                return
+
+            while True:
+                try:
+                    data, _ = sock.recvfrom(2048)
+                    if not data:
+                        continue
+                    payload = json.loads(data.decode("utf-8"))
+                    new_state = payload.get("state", "IDLE")
+                    old_busy = self.robot_busy
+                    self.robot_state = new_state
+                    self.robot_busy = payload.get("busy", False)
+                    self.robot_state_label = payload.get("label", "")
+                    if old_busy and not self.robot_busy:
+                        # Cooldown bei Uebergang zurueck in IDLE zuruecksetzen
+                        self.smoother.last_event_time = 0.0
+                except Exception:
+                    time.sleep(0.05)
+
+        t = threading.Thread(target=worker, daemon=True)
+        t.start()
 
     def _default_event_handler(self, gesture: GestureType, result: GestureResult):
         """Standard console logger for triggered robot dog commands."""
@@ -149,6 +199,15 @@ class GestureController:
         # Draw active gesture badge
         cv2.rectangle(image, (15, 12), (w - 15, 58), badge_color, 2, cv2.LINE_AA)
         cv2.putText(image, f"CMD: {label_text}", (25, 44), cv2.FONT_HERSHEY_SIMPLEX, 0.85, (255, 255, 255), 2, cv2.LINE_AA)
+
+        # Live Robot State indicator
+        if self.robot_busy:
+            rob_color = (0, 140, 255)  # Amber
+            rob_text = f"ROBOT: [SUCHE AKTIV] {self.robot_state_label}"
+        else:
+            rob_color = (0, 220, 50)   # Green
+            rob_text = f"ROBOT: [BEREIT] {self.robot_state} - Befehle aktiv"
+        cv2.putText(image, rob_text, (15, h - 38), cv2.FONT_HERSHEY_SIMPLEX, 0.55, rob_color, 2, cv2.LINE_AA)
 
         # Info line (FPS & tracking state)
         conf_str = f"Conf: {result.confidence*100:.0f}%" if result and result.confidence > 0 else "Conf: --"
@@ -230,6 +289,15 @@ class GestureController:
                 stable_gesture, is_new_event = self.smoother.update(best_result, timestamp=now)
 
                 if is_new_event:
+                    if stable_gesture != GestureType.NONE:
+                        if not self.robot_busy:
+                            send_udp_command(stable_gesture.german_label)
+                        else:
+                            print(
+                                f"[GESTURE] Roboter sucht gerade ({self.robot_state}) - "
+                                f"Befehl '{stable_gesture.german_label}' unterdrueckt.",
+                                flush=True,
+                            )
                     self.event_callback(stable_gesture, best_result)
 
                 if not self.headless:

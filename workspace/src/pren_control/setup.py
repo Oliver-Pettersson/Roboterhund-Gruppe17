@@ -27,6 +27,8 @@ setup(
     entry_points={
         'console_scripts': [
             'circle_driver = pren_control.circle_driver:main',
+            'such_driver = pren_control.such_driver:main',
+            'reset_gui = pren_control.reset_button_gui:main',
         ],
     },
 )

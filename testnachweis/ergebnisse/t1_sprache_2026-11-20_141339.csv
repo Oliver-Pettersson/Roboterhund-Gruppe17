@@ -1,0 +1,51 @@
+﻿nr;zeit;block;distanz_m;erwartet;erkannt;korrekt;latenz_s;gehoert_verworfen
+1;14:14:38;ruhig;1;BRAV;-;nein;;brauchen
+2;14:14:53;ruhig;1;BRAV;BRAV;ja;0.515;
+3;14:15:03;ruhig;1;SUCH;SUCH;ja;0.500;
+4;14:15:12;ruhig;1;SITZ;SITZ;ja;0.500;
+5;14:15:22;ruhig;1;SUCH;SUCH;ja;0.500;
+6;14:15:32;ruhig;1;nicht-befehl;-;ja;;ja wo
+7;14:15:42;ruhig;1;SITZ;SITZ;ja;0.500;
+8;14:15:56;ruhig;1;BRAV;-;nein;;brauchen
+9;14:16:31;ruhig;1;nicht-befehl;-;ja;;suchen
+10;14:16:39;ruhig;1;SITZ;SITZ;ja;0.500;
+11;14:16:50;ruhig;1;nicht-befehl;-;ja;;hier drei in
+12;14:16:59;ruhig;1;BRAV;BRAV;ja;0.500;
+13;14:17:08;ruhig;1;HIER;HIER;ja;0.515;
+14;14:17:18;ruhig;1;HIER;HIER;ja;0.500;
+15;14:17:28;ruhig;1;BRAV;BRAV;ja;0.500;
+16;14:17:35;ruhig;1;nicht-befehl;-;ja;;gut
+17;14:17:44;ruhig;1;HIER;HIER;ja;0.500;wie
+18;14:17:52;ruhig;1;HIER;HIER;ja;0.485;
+19;14:17:59;ruhig;1;SUCH;SUCH;ja;0.500;
+20;14:18:08;ruhig;1;nicht-befehl;-;ja;;sitz zug
+21;14:18:16;ruhig;1;SUCH;SUCH;ja;0.515;
+22;14:18:23;ruhig;1;SITZ;SITZ;ja;0.500;
+23;14:18:30;ruhig;1;SUCH;SUCH;ja;0.500;
+24;14:18:36;ruhig;1;SITZ;SITZ;ja;0.500;
+25;14:18:44;ruhig;1;HIER;HIER;ja;0.485;
+26;14:19:49;laerm;1;SITZ;SITZ;ja;0.500;
+27;14:19:56;laerm;1;HIER;HIER;ja;0.500;
+28;14:20:05;laerm;1;BRAV;-;nein;;brauchen
+29;14:20:12;laerm;1;SUCH;SUCH;ja;0.500;
+30;14:20:19;laerm;1;BRAV;-;nein;;brauchen
+31;14:20:28;laerm;1;BRAV;-;nein;;genau
+32;14:20:36;laerm;1;nicht-befehl;-;ja;;gut
+33;14:20:44;laerm;1;SITZ;SITZ;ja;0.500;
+34;14:20:51;laerm;1;SUCH;-;nein;;so es
+35;14:20:59;laerm;1;HIER;HIER;ja;0.485;
+36;14:21:06;laerm;1;BRAV;-;nein;;braun
+37;14:21:12;laerm;1;SITZ;SITZ;ja;0.500;
+38;14:21:19;laerm;1;SUCH;SUCH;ja;0.500;
+39;14:21:26;laerm;1;SUCH;-;nein;;so es
+40;14:21:33;laerm;1;SITZ;SITZ;ja;0.500;
+41;14:21:39;laerm;1;HIER;HIER;ja;0.515;
+42;14:21:47;laerm;1;SUCH;-;nein;;zu es
+43;14:21:53;laerm;1;HIER;HIER;ja;0.485;
+44;14:22:00;laerm;1;nicht-befehl;-;ja;;braun wo
+45;14:22:08;laerm;1;BRAV;BRAV;ja;0.500;
+46;14:22:14;laerm;1;SITZ;SITZ;ja;0.500;
+47;14:22:21;laerm;1;HIER;HIER;ja;0.500;
+48;14:22:30;laerm;1;nicht-befehl;-;ja;;hier drei in
+49;14:22:39;laerm;1;nicht-befehl;-;ja;;sitz zug
+50;14:22:58;laerm;1;nicht-befehl;-;ja;;such sein

@@ -18,13 +18,19 @@ As specified in **Section 3.1 (Page 5, Abbildung 4)** of the PREN1 specification
 
 ## Quick Start (Windows)
 
-### 1. Run the Interactive Camera Visualizer
+### 1. Setup Virtual Environment (First time only)
 Open PowerShell in the project root:
+```powershell
+python -m venv prototypes\gesture_recognition\.venv
+prototypes\gesture_recognition\.venv\Scripts\pip install -r prototypes\gesture_recognition\requirements.txt
+```
+
+### 2. Run the Interactive Camera Visualizer
 ```powershell
 prototypes\gesture_recognition\.venv\Scripts\python prototypes\gesture_recognition\gesture_control.py
 ```
 
-### 2. Controls & Flags
+### 3. Controls & Flags
 - Press **`q`** or **`ESC`** in the video window to quit.
 - To use a different camera device:
   ```powershell

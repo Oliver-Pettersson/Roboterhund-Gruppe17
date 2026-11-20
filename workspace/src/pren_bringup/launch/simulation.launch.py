@@ -1,139 +1,98 @@
-"""Start Webots and connect the external PREN simulation controller."""
+"""
+Startet die Simulation: Webots, ROS-Bridge, Verhalten, Wahrnehmung und Bedienfenster.
+
+Aufruf:
+    ros2 launch pren_bringup simulation.launch.py
+    ros2 launch pren_bringup simulation.launch.py voice:=false gesture:=false
+    ros2 launch pren_bringup simulation.launch.py control_panel:=false
+    # fuer automatische Tests: Webots minimiert, ohne Darstellung, eigener Port
+    ros2 launch pren_bringup simulation.launch.py webots_gui:=false webots_port:=1240
+"""
 
 import os
 from pathlib import Path
 
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import ExecuteProcess, TimerAction
+from launch.actions import (
+    DeclareLaunchArgument,
+    ExecuteProcess,
+    IncludeLaunchDescription,
+    OpaqueFunction,
+    TimerAction,
+)
+from launch.conditions import IfCondition
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
+from pren_bringup.repo_paths import (
+    find_file,
+    find_repo_root,
+    find_webots_home,
+    webots_environment,
+)
+
+HEADLESS_WEBOTS_OPTIONS = ['--minimize', '--no-rendering', '--batch']
 
 
-WEBOTS_PORT = 1234
+def webots_processes(context):
+    """Webots und den Bridge-Controller mit dem gewaehlten Port starten."""
+    port = LaunchConfiguration('webots_port').perform(context)
+    show_gui = LaunchConfiguration('webots_gui').perform(context).lower() == 'true'
+    webots_home = find_webots_home()
+    simulation_dir = find_repo_root(Path.cwd()) / 'simulation' / 'webots'
 
-
-def find_repo_root() -> Path:
-    """Find the repository containing both Pixi and Webots project files."""
-    search_locations = [
-        Path.cwd(),
-        Path(__file__).resolve().parent,
-    ]
-
-    for start in search_locations:
-        for directory in [start, *start.parents]:
-            if (
-                (directory / 'pixi.toml').exists()
-                and (directory / 'simulation' / 'webots').exists()
-            ):
-                return directory
-
-    raise RuntimeError(
-        'PREN Repository-Root konnte nicht gefunden werden.'
+    webots = ExecuteProcess(
+        cmd=[str(find_file(webots_home, 'webots.exe')), f'--port={port}', '--mode=realtime',
+             *([] if show_gui else HEADLESS_WEBOTS_OPTIONS),
+             str(simulation_dir / 'worlds' / 'pren_simulation.wbt')],
+        # Webots ohne Pixi-Umgebung starten, sonst laedt es fremde Qt-Plugins und stuerzt ab.
+        env=webots_environment(os.environ, webots_home),
+        output='screen',
     )
-
-
-def find_executable(root: Path, filename: str) -> Path:
-    """Return the first executable with *filename* below *root*."""
-    matches = list(root.rglob(filename))
-
-    if not matches:
-        raise RuntimeError(
-            f'{filename} wurde unter {root} nicht gefunden.'
-        )
-
-    return matches[0]
+    webots_bridge = ExecuteProcess(
+        cmd=[str(find_file(webots_home, 'webots-controller.exe')), f'--port={port}',
+             str(simulation_dir / 'controllers' / 'pren_bridge' / 'pren_bridge.py')],
+        additional_env={'WEBOTS_HOME': str(webots_home)},
+        output='screen',
+    )
+    # Webots braucht einen Moment, bis der externe Controller verbinden kann.
+    return [webots, TimerAction(period=3.0, actions=[webots_bridge])]
 
 
 def generate_launch_description():
-    """Build the ROS launch description for Webots and its controller."""
-    repo_root = find_repo_root()
+    bringup_dir = Path(get_package_share_directory('pren_bringup'))
 
-    # Webots Installation
-    default_webots_home = (
-        Path(os.environ['LOCALAPPDATA'])
-        / 'Programs'
-        / 'Webots'
-    )
-
-    webots_home = Path(
-        os.environ.get(
-            'WEBOTS_HOME',
-            str(default_webots_home),
-        )
-    )
-
-    if not webots_home.exists():
-        raise RuntimeError(
-            f'Webots wurde nicht gefunden: {webots_home}'
-        )
-
-    webots_exe = find_executable(
-        webots_home,
-        'webots.exe',
-    )
-
-    webots_controller_exe = find_executable(
-        webots_home,
-        'webots-controller.exe',
-    )
-
-    # Projektdateien
-    world_file = (
-        repo_root
-        / 'simulation'
-        / 'webots'
-        / 'worlds'
-        / 'pren_simulation.wbt'
-    )
-
-    controller_file = (
-        repo_root
-        / 'simulation'
-        / 'webots'
-        / 'controllers'
-        / 'webots_bridge'
-        / 'webots_bridge.py'
-    )
-
-    if not world_file.exists():
-        raise RuntimeError(
-            f'Webots-Welt nicht gefunden: {world_file}'
-        )
-
-    if not controller_file.exists():
-        raise RuntimeError(
-            f'Webots-Controller nicht gefunden: {controller_file}'
-        )
-
-    # Webots starten
-    webots = ExecuteProcess(
-        cmd=[
-            str(webots_exe),
-            f'--port={WEBOTS_PORT}',
-            '--mode=realtime',
-            str(world_file),
-        ],
+    dog_behavior = Node(
+        package='pren_behavior',
+        executable='dog_behavior_node',
+        name='dog_behavior',
+        parameters=[str(bringup_dir / 'config' / 'behavior.yaml')],
         output='screen',
     )
-
-    # Externen Controller starten
-    webots_controller = ExecuteProcess(
-        cmd=[
-            str(webots_controller_exe),
-            f'--port={WEBOTS_PORT}',
-            str(controller_file),
-        ],
+    control_panel = Node(
+        package='pren_simulation',
+        executable='control_panel',
         output='screen',
-        additional_env={
-            'WEBOTS_HOME': str(webots_home),
-        },
+        condition=IfCondition(LaunchConfiguration('control_panel')),
+    )
+    perception = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(str(bringup_dir / 'launch' / 'perception.launch.py')),
+        launch_arguments={'voice': LaunchConfiguration('voice'),
+                          'gesture': LaunchConfiguration('gesture')}.items(),
     )
 
     return LaunchDescription([
-        webots,
-
-        TimerAction(
-            period=3.0,
-            actions=[
-                webots_controller,
-            ],
-        ),
+        DeclareLaunchArgument('control_panel', default_value='true',
+                              description='Bedienfenster mit Befehlsknoepfen starten.'),
+        DeclareLaunchArgument('voice', default_value='true',
+                              description='Spracherkennung (Mikrofon) starten.'),
+        DeclareLaunchArgument('gesture', default_value='true',
+                              description='Kamera und Gestenerkennung starten.'),
+        DeclareLaunchArgument('webots_gui', default_value='true',
+                              description='false: Webots minimiert und ohne Darstellung.'),
+        DeclareLaunchArgument('webots_port', default_value='1234',
+                              description='Port, ueber den Bridge und Webots sprechen.'),
+        OpaqueFunction(function=webots_processes),
+        TimerAction(period=4.0, actions=[dog_behavior, control_panel, perception]),
     ])
