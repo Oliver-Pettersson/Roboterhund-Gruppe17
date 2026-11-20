@@ -22,6 +22,7 @@ setup(
     entry_points={
         'console_scripts': [
             'control_panel = pren_simulation.control_panel:main',
+            'simulation_check = pren_simulation.simulation_check:main',
         ],
     },
 )
