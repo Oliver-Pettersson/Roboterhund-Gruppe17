@@ -8,4 +8,4 @@ This directory stores the offline acoustic model for the voice control system.
 - **Source**: [Alpha Cephei Vosk Models](https://alphacephei.com/vosk/models)
 - **Automatic Setup**: `voice_control.py` automatically downloads and unpacks this model on first run if it is not found here.
 - **Constrained Grammar**: The recognizer decodes strictly against the target keywords:
-  `["hier", "sitz", "platz", "auf", "such", "[unk]"]`
+  `["hier", "brav", "sitz", "platz", "auf", "such", "[unk]"]`

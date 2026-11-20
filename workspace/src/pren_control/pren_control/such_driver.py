@@ -103,7 +103,7 @@ class SuchDriver(Node):
         self.get_logger().info("=============================================================")
         self.get_logger().info(" PREN Such-Treiber initialisiert (Geschwindigkeit 2x: 0.36 m/s)")
         self.get_logger().info(" Startposition: 180° abgewandt vom Suchfeld (Blick zum Schiri)")
-        self.get_logger().info(" Wartet auf Befehle ('Such', 'Sitz', 'Platz', 'Auf', 'Hier')")
+        self.get_logger().info(" Wartet auf Befehle ('Such', 'Sitz', 'Platz', 'Auf', 'Hier', 'Brav')")
         self.get_logger().info(" UDP-Listener auf 127.0.0.1:9876 fuer Voice- & Gestensteuerung aktiv")
         self.get_logger().info("=============================================================")
 
@@ -211,6 +211,10 @@ class SuchDriver(Node):
         elif cmd_str == "HIER":
             self.get_logger().info("🐕 Befehl «HIER»: Roboter richtet Aufmerksamkeit auf Schiedsrichter.")
             self._publish_status_feedback("HIER: Roboter aufmerksam")
+
+        elif cmd_str == "BRAV":
+            self.get_logger().info("🐕 Befehl «BRAV»: Roboter zeigt Freude (Bestaetigung).")
+            self._publish_status_feedback("BRAV: Roboter freut sich")
 
         elif cmd_str == "STOP":
             self.get_logger().info("⏹️ Roboter gestoppt.")

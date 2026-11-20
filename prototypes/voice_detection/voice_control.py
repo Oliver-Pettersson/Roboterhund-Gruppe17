@@ -3,10 +3,10 @@
 Voice Recognition Demo & State Controller for Robot Dog (Gruppe 17)
 Engine: Vosk (Kaldi Offline German Speech Recognizer)
 Language: German
-Keywords: "Hier", "Sitz", "Platz", "Auf", "Such"
+Keywords: "Hier", "Brav", "Sitz", "Platz", "Auf", "Such"
 
 Behavior:
-- Direct demo mode: recognizes any of the 5 keywords immediately without waiting window.
+- Direct demo mode: recognizes any of the 6 keywords immediately without waiting window.
 - Noise filtering: audio frames below a configurable RMS volume threshold are discarded
   before classification to prevent false triggers from background noise.
 - De-duplication rule: repeating the same command does not re-trigger until a different command is given.
@@ -61,6 +61,7 @@ CONFIG = {
     # Target German Keywords: lowercase token -> Display Name
     "keywords": {
         "hier": "Hier",
+        "brav": "Brav",
         "sitz": "Sitz",
         "platz": "Platz",
         "auf": "Auf",
@@ -188,7 +189,7 @@ class VoiceDetector:
         t0 = time.time()
         vosk_model = Model(str(model_path.resolve()))
 
-        # Grammar strictly limits search graph to the 5 target words + [unk]
+        # Grammar strictly limits search graph to the target keywords + [unk]
         keywords = list(self.cfg["keywords"].keys()) + ["[unk]"]
         grammar_json = json.dumps(keywords)
 
@@ -492,7 +493,7 @@ def launch_gui(config: dict):
 
     status_sub = tk.Label(
         hero_frame,
-        text="Say any keyword: Hier, Sitz, Platz, Auf, Such",
+        text="Say any keyword: Hier, Brav, Sitz, Platz, Auf, Such",
         font=("Segoe UI", 10),
         fg="#CBD5E1",
         bg="#1E293B",
@@ -813,7 +814,7 @@ def run_headless(config: dict):
     print(" HSLU PREN - Roboterhund Gruppe 17 (Voice Control Demo)")
     print(" Mode: Headless Console")
     print(f" Noise Filter: Active (Volume Threshold = {thresh:.0f} RMS)")
-    print(" Commands: 'Hier', 'Sitz', 'Platz', 'Auf', 'Such'")
+    print(" Commands: 'Hier', 'Brav', 'Sitz', 'Platz', 'Auf', 'Such'")
     print(" Rule: Repeated words do not re-trigger until a different word is spoken.")
     print("============================================================\n")
 

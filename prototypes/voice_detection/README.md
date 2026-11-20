@@ -1,6 +1,6 @@
 # Voice Detection
 
-Offline-Spracherkennung für die deutschen Kommandos **Hier**, **Sitz**, **Platz**, **Auf** und **Such** mit Vosk.
+Offline-Spracherkennung für die deutschen Kommandos **Hier**, **Brav**, **Sitz**, **Platz**, **Auf** und **Such** mit Vosk.
 
 ## Windows
 
