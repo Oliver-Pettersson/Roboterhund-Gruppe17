@@ -4,6 +4,10 @@ Glaettet die Gesten ueber mehrere Bilder, damit einzelne Fehlbilder nichts auslo
 Eine Geste gilt erst als erkannt, wenn sie in mindestens min_agreeing der letzten
 window_size Bilder vorkommt. Dieselbe Geste loest danach erst nach cooldown_s
 erneut aus. Uebernommen aus GestureSmoother im Prototyp.
+
+Fuer die flache Hand (SITZ) kann eine strengere Glaettung gelten (open_palm_window_size,
+open_palm_min_agreeing): Sie entsteht auch zufaellig, z. B. beim Kopfkratzen. AUF und
+PLATZ bleiben dadurch gleich schnell.
 """
 
 from collections import Counter, deque
@@ -16,8 +20,13 @@ from pren_perception.gesture.hand_gesture_classifier import HandGesture
 class GestureDebouncer:
     """Mehrheitsentscheid ueber die letzten Bilder mit Sperrzeit."""
 
-    def __init__(self, window_size: int = 5, min_agreeing: int = 4, cooldown_s: float = 1.0):
-        self._recent = deque(maxlen=window_size)
+    def __init__(self, window_size: int = 5, min_agreeing: int = 4, cooldown_s: float = 1.0,
+                 open_palm_window_size: int = 0, open_palm_min_agreeing: int = 0):
+        # 0 = wie die anderen Gesten
+        self._window_size = window_size
+        self._palm_window = open_palm_window_size or window_size
+        self._palm_min_agreeing = open_palm_min_agreeing or min_agreeing
+        self._recent = deque(maxlen=max(window_size, self._palm_window))
         self._min_agreeing = min_agreeing
         self._cooldown_s = cooldown_s
         self._last_gesture = HandGesture.NONE
@@ -47,7 +56,14 @@ class GestureDebouncer:
         self._last_trigger_time = -math.inf
 
     def _stable_gesture(self) -> Optional[HandGesture]:
-        if len(self._recent) < self._min_agreeing:
+        window = list(self._recent)[-self._window_size:]
+        if len(window) < self._min_agreeing:
             return None
-        gesture, count = Counter(self._recent).most_common(1)[0]
-        return gesture if count >= self._min_agreeing else None
+        gesture, count = Counter(window).most_common(1)[0]
+        if count < self._min_agreeing:
+            return None
+        if gesture is HandGesture.OPEN_PALM:
+            palm_window = list(self._recent)[-self._palm_window:]
+            if palm_window.count(HandGesture.OPEN_PALM) < self._palm_min_agreeing:
+                return None
+        return gesture

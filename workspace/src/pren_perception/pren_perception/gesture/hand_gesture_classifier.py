@@ -40,6 +40,10 @@ EXTENDED_RATIO = 1.20         # Finger gestreckt: Spitze deutlich weiter weg als
 CURLED_RATIO = 1.12           # Finger eingerollt: Spitze kaum weiter weg als Mittelgelenk
 THUMB_EXTENDED_RATIO = 1.25
 OPEN_PALM_MAX_DROP = 0.25     # Fingerspitzen duerfen hoechstens so weit unter dem Knoechel sein
+# Flache Hand nur, wenn sie nach oben zeigt (wie ein Stoppzeichen). Im Test T2 vom 20.11.2026
+# loesten Handy halten, Arme verschraenken und Kopf kratzen 4 von 9 Mal SITZ aus.
+OPEN_PALM_MIN_RISE = 1.0      # Mittelfingerspitze mind. 1 Handgroesse ueber dem Handgelenk
+OPEN_PALM_MAX_SLOPE = 1.0     # |dx| / |dy| Handgelenk -> Mittelfingerspitze, max. 45 Grad schraeg
 MIN_VERTICAL_TRAVEL = 0.10    # Zeigefinger muss mind. 10 % der Handgroesse senkrecht zeigen
 UP_MAX_SLOPE = 0.75           # |dx| / |dy| beim Zeigen nach oben
 DOWN_MAX_SLOPE = 0.85         # |dx| / |dy| beim Zeigen nach unten
@@ -139,7 +143,17 @@ def classify_hand(landmarks: Sequence) -> GestureResult:
 def _is_open_palm(hand: _Hand) -> bool:
     return (all(hand.is_extended(finger) for finger in FINGERS)
             and hand.thumb_is_extended()
-            and all(hand.fingertip_drop(finger) < OPEN_PALM_MAX_DROP for finger in FINGERS))
+            and all(hand.fingertip_drop(finger) < OPEN_PALM_MAX_DROP for finger in FINGERS)
+            and _points_up(hand))
+
+
+def _points_up(hand: _Hand) -> bool:
+    """Hand zeigt nach oben: alle Fingerspitzen ueber dem Handgelenk, Hand kaum schraeg."""
+    tip = hand.points[MIDDLE_TIP]
+    dx, dy = tip.x - hand.wrist.x, tip.y - hand.wrist.y
+    return (dy < -OPEN_PALM_MIN_RISE * hand.scale
+            and abs(dx) <= abs(dy) * OPEN_PALM_MAX_SLOPE
+            and all(hand.points[FINGERS[finger][0]].y < hand.wrist.y for finger in FINGERS))
 
 
 def _is_pointing_up(hand: _Hand) -> bool:

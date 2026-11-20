@@ -13,6 +13,9 @@ gesture_command:
     window_size: 5       # so viele Bilder werden betrachtet
     min_agreeing: 4      # so viele davon muessen dieselbe Geste zeigen
     cooldown_s: 1.0      # gehaltene Geste loest fruehestens nach dieser Zeit erneut aus
+    # SITZ (flache Hand) strenger: entsteht auch zufaellig, z. B. beim Kopfkratzen (T2, 20.11.)
+    open_palm_window_size: 8
+    open_palm_min_agreeing: 7
 
 voice_command:
   ros__parameters:

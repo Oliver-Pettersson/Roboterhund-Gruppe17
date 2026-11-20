@@ -9,6 +9,7 @@ Veroeffentlicht:
 Parameter:
     model_path           Datei hand_landmarker.task
     window_size, min_agreeing, cooldown_s   Glaettung (siehe GestureDebouncer)
+    open_palm_window_size, open_palm_min_agreeing   strengere Glaettung fuer SITZ (0 = gleich)
 """
 
 from pathlib import Path
@@ -33,6 +34,8 @@ class GestureCommandNode(Node):
         self.declare_parameter('window_size', 5)
         self.declare_parameter('min_agreeing', 4)
         self.declare_parameter('cooldown_s', 1.0)
+        self.declare_parameter('open_palm_window_size', 0)
+        self.declare_parameter('open_palm_min_agreeing', 0)
 
         self._hands = HandLandmarkDetector(Path(self.get_parameter('model_path').value))
         self._detector = GestureCommandDetector(
@@ -41,6 +44,8 @@ class GestureCommandNode(Node):
                 window_size=self.get_parameter('window_size').value,
                 min_agreeing=self.get_parameter('min_agreeing').value,
                 cooldown_s=self.get_parameter('cooldown_s').value,
+                open_palm_window_size=self.get_parameter('open_palm_window_size').value,
+                open_palm_min_agreeing=self.get_parameter('open_palm_min_agreeing').value,
             ),
         )
         self._bridge = CvBridge()

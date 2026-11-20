@@ -1,10 +1,13 @@
 """Tests fuer Gestenklassifikation, Glaettung und den Gesamtablauf Bild -> Befehl."""
 
+import math
+
 from hand_samples import (
     FIST,
     L_SHAPE,
     OPEN_PALM,
     PEACE_SIGN,
+    Point,
     POINTING_DOWN,
     POINTING_SIDEWAYS,
     POINTING_UP,
@@ -49,6 +52,27 @@ def test_rejects_incomplete_hand():
     assert classify_hand(OPEN_PALM[:10]).gesture is NONE
 
 
+def rotated(hand, degrees: float):
+    """Hand um das Handgelenk drehen (positiv = im Bild im Uhrzeigersinn)."""
+    angle = math.radians(degrees)
+    cos, sin = math.cos(angle), math.sin(angle)
+    wrist = hand[0]
+    return [Point(wrist.x + (p.x - wrist.x) * cos - (p.y - wrist.y) * sin,
+                  wrist.y + (p.x - wrist.x) * sin + (p.y - wrist.y) * cos, p.z) for p in hand]
+
+
+@pytest.mark.parametrize('degrees', [-30, -15, 15, 30])
+def test_slightly_tilted_open_palm_is_still_sitz(degrees):
+    assert classify_hand(rotated(OPEN_PALM, degrees)).gesture is PALM
+
+
+@pytest.mark.parametrize('degrees', [-90, 90, 180, 135],
+                         ids=['links', 'rechts', 'unten', 'schraeg'])
+def test_open_hand_not_pointing_up_is_not_sitz(degrees):
+    """Gespreizte Hand seitlich oder nach unten (Arme verschraenkt, Handy halten) ist kein SITZ."""
+    assert classify_hand(rotated(OPEN_PALM, degrees)).gesture is NONE
+
+
 # ---------------------------------------------------------------- Glaettung
 
 def test_single_wrong_frame_does_not_trigger():
@@ -56,6 +80,27 @@ def test_single_wrong_frame_does_not_trigger():
     results = [debouncer.update(g, now=i * 0.1) for i, g in enumerate([NONE] * 4 + [UP])]
 
     assert results == [None] * 5
+
+
+def test_open_palm_needs_more_agreeing_frames_when_configured():
+    """SITZ mit 7 von 8 Bildern: kurz flache Hand (z. B. Kopfkratzen) reicht nicht."""
+    debouncer = GestureDebouncer(window_size=5, min_agreeing=4, cooldown_s=1.0,
+                                 open_palm_window_size=8, open_palm_min_agreeing=7)
+
+    short = [debouncer.update(g, now=0.0) for g in [PALM] * 5 + [NONE] * 5]
+    held = [debouncer.update(PALM, now=1.0) for _ in range(7)]
+
+    assert short == [None] * 10
+    assert held == [None] * 6 + [PALM]
+
+
+def test_stricter_open_palm_does_not_slow_down_other_gestures():
+    debouncer = GestureDebouncer(window_size=5, min_agreeing=4,
+                                 open_palm_window_size=8, open_palm_min_agreeing=7)
+
+    results = [debouncer.update(UP, now=0.0) for _ in range(4)]
+
+    assert results == [None, None, None, UP]
 
 
 def test_triggers_once_after_enough_agreeing_frames():
