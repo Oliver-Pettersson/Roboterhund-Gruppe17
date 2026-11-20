@@ -74,7 +74,7 @@ flowchart TD
 | Topic | Nachrichtentyp | Richtung | Frequenz / Trigger | Beschreibung & Payload |
 | :--- | :--- | :--- | :--- | :--- |
 | **`/pren/command`** | `std_msgs/msg/String` | Perception $\rightarrow$ Control | Event-basiert | **Zentraler Steuerkanal.** Gültige Strings: `"SUCH"`, `"HIER"`, `"SITZ"`, `"PLATZ"`, `"AUF"`, `"BRAV"`, `"STOP"`. |
-| **`/pren/voice_command`** | `std_msgs/msg/String` | Voice $\rightarrow$ Perception | Event-basiert | Rohausgabe des Vosk-Erkenners (`"such"`, `"sitz"`, `"platz"`, `"auf"`, `"hier"`). |
+| **`/pren/voice_command`** | `std_msgs/msg/String` | Voice $\rightarrow$ Perception | Event-basiert | Rohausgabe des Vosk-Erkenners (`"such"`, `"sitz"`, `"platz"`, `"auf"`, `"hier"`, `"brav"`). |
 | **`/pren/gesture_command`**| `std_msgs/msg/String` | Gesture $\rightarrow$ Perception | Event-basiert | Rohausgabe von MediaPipe (`"UP"`, `"DOWN"`, `"SIT"`). |
 | **`/pren/reset`** | `std_msgs/msg/Empty` | GUI/User $\rightarrow$ Sim & Control | Event-basiert | **Setup-Reset:** Teleportiert Roboter zum Startfeld $(0,0)$, platziert Knochen neu, stoppt Audio & Motoren. |
 | **`/pren/reset_done`** | `std_msgs/msg/Empty` | Bridge $\rightarrow$ Control | Event-basiert | Bestätigung der Simulation, dass Pose und Welt neu aufgesetzt wurden. |

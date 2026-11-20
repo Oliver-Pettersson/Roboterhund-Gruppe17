@@ -90,6 +90,28 @@ ros2 launch pren_bringup perception.launch.py
 ros2 topic echo /pren/dog_command
 ```
 
+### Abnahmetest der Simulation
+
+`simulation_check` spielt alle Befehle ein und wiederholt SUCH mehrmals mit neu platziertem Knochen. Mit `webots_gui:=false` läuft Webots minimiert, mit eigenem Port und eigener ROS-Domain stört der Test keine laufende Simulation:
+
+```powershell
+cd workspace; . .\install\local_setup.ps1
+$env:ROS_DOMAIN_ID = '87'
+ros2 launch pren_bringup simulation.launch.py webots_gui:=false webots_port:=1240 voice:=false gesture:=false control_panel:=false
+# zweites Terminal, ebenfalls mit ROS_DOMAIN_ID 87:
+ros2 run pren_simulation simulation_check --ros-args -p search_runs:=5
+```
+
+## Stabilität
+
+| Bereich | Massnahme | Geprüft durch |
+| --- | --- | --- |
+| Sprache | Befehl nur, wenn die ganze Äusserung genau ein Befehlswort ist (Sicherheit ≥ 0,7, höchstens 2 s). Füllwörter in der Vosk-Wortliste fangen andere Wörter ab. | 40 Testaufnahmen unter `pren_perception/test/data/voice` (Befehle, Einzelwörter, Sätze, mit und ohne Rauschen) |
+| Gesten | Mehrheitsentscheid über 5 Bilder, Sperrzeit 1 s | Zittern, Handgrösse, Position, linke Hand, flackernde Erkennung |
+| Suche | Kontakt erst nach 3 Messungen in Folge, Weitersuchen bei verlorenem Knochen, Rückkehr ohne Fund | 80 Zufallsläufe mit und ohne Kamerarauschen, Sektorränder |
+| Sensorausfall | Ohne Odometrie (> 0,5 s) hält der Hund an; alte Knochenmeldungen (> 0,5 s) werden verworfen | Integrationstest mit abbrechender Odometrie |
+| Simulation | Webots startet ohne Pixi-Umgebung (sonst Absturz 0xC0000374) | `simulation_check` |
+
 ## Modelle
 
 Die Launch-Dateien suchen die Modelle zuerst unter `models/`, dann in den Prototyp-Ordnern:
@@ -102,7 +124,7 @@ Die Launch-Dateien suchen die Modelle zuerst unter `models/`, dann in den Protot
 
 ## Offene Punkte
 
-1. **Spracherkennung löst bei Hintergrundgesprächen aus.** Vosk mit Grammatik ordnet jedes Wort dem ähnlichsten Befehl zu. Beim Test lief am Laptop nebenher Sprache und wurde öfter als SUCH/SITZ/HIER erkannt. Vorschlag: Wort-Konfidenz von Vosk auswerten und eine Mindestkonfidenz einführen (eigener Schritt, mit T1-Messungen abstimmen).
+1. **Sprache mit echten Stimmen abstimmen.** Die Testaufnahmen stammen von der Windows-Stimme. `min_confidence` und `max_utterance_s` mit den T1-Messungen (verschiedene Personen, 60 dB) prüfen.
 2. **Picamera2-Backend** für `camera_node` auf dem Pi 5.
 3. **YOLO-Modell** trainieren und `bone_detection_node` mit `ultralytics` (bzw. NCNN) in die Umgebung aufnehmen.
 4. **Motortreiber-Node** für den echten Roboter (`/cmd_vel`, `/pren/posture` → Hardware, `/odom` zurück).
