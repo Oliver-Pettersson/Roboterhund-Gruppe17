@@ -62,3 +62,6 @@ models/bone_detection/*
 _local_trainer/
 
 
+
+# Webots: lokale Fensteranordnung pro Welt
+*.wbproj
