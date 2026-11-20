@@ -33,7 +33,10 @@ VOICE_KEYWORDS: Dict[str, Command] = {
 FILLER_WORDS = (
     # aehnlich klingend wie ein Befehl. Reime auf "hier" (wir, mir, vier ...) fehlen
     # bewusst: sie verdraengen bei Rauschen das echte "hier" (gemessen mit den Testaufnahmen).
-    'sitzen', 'setzen', 'suchen', 'sucht', 'hierher', 'braun', 'brauchen', 'sie', 'sicht',
+    # Aus demselben Grund fehlen "braun" und "brauchen": Im Test T1 vom 20.11.2026 (Laptop-
+    # Mikrofon, 1 m) wurde "brav" meist als "brauchen" gehoert, BRAV kam ruhig nur auf 60 %,
+    # mit Laerm auf 20 %.
+    'sitzen', 'setzen', 'suchen', 'sucht', 'hierher', 'sie', 'sicht',
     'ziel', 'zug', 'buch', 'tuch', 'platz', 'auf',
     # haeufig im Gespraech
     'ja', 'nein', 'danke', 'bitte', 'hallo', 'gut', 'genau', 'ich', 'du', 'er', 'es', 'das', 'der',
