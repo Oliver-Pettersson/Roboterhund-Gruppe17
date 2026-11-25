@@ -124,10 +124,10 @@ flowchart TD
     D -->|Knochen > 1,5 s verloren| C
     E --> F["5. Rückfahrt ins Startfeld (0,44 m/s)"]
     F --> G["6. Drehung zurück zum Schiedsrichter"]
-    G --> H["7. Mission beendet"]
+    G --> H["7. Hund setzt sich, Abschlusston"]
 ```
 
-> **Befehlssperre während der Suche:** Solange SUCH läuft, werden alle anderen Befehle ignoriert. Erst nach der Rückkehr und der Drehung zum Schiedsrichter nimmt der Hund wieder Befehle an. Die Werte stehen in `workspace/src/pren_bringup/config/behavior.yaml`.
+> **Befehlssperre während der Suche:** Solange SUCH läuft, werden alle anderen Befehle ignoriert. Am Ende sitzt der Hund im Startfeld mit Blick zum Schiedsrichter und spielt den Abschlusston (Anforderung 5.8). Danach nimmt er wieder Befehle an, z. B. AUF zum Aufstehen. Die Werte stehen in `workspace/src/pren_bringup/config/behavior.yaml`.
 
 ---
 

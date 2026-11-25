@@ -37,7 +37,7 @@ Generierte Pixi-Umgebungen, ROS-Buildartefakte, Caches sowie große Modelle und 
 - **ROS 2 Jazzy unter Windows:** Lauffähig über Pixi/RoboStack mit Cyclone DDS. Vosk, MediaPipe und sounddevice sind in derselben Pixi-Umgebung installiert.
 - **ROS-2-Pakete** (`workspace/src`): Sprache, Gesten, Kamera, Knochenerkennung, Verhalten und Simulation laufen als eigene Nodes und sprechen über typisierte Messages aus `pren_interfaces`. Aufbau, Topics und Verhalten: [docs/ARCHITEKTUR.md](docs/ARCHITEKTUR.md).
 - **Befehle:** HIER, BRAV, SITZ, SUCH per Sprache; SITZ, PLATZ, AUF per Geste. Während SUCH läuft, werden alle anderen Befehle ignoriert.
-- **Simulation:** Webots mit Pioneer 3-DX. SUCH dreht zum Suchbereich, sucht den zufällig platzierten Knochen, bellt und kehrt zurück. Haltung und Lob werden als Text im 3D-Fenster angezeigt. Ein Bedienfenster sendet alle Befehle und setzt die Welt zurück.
+- **Simulation:** Webots mit Pioneer 3-DX. SUCH dreht zum Suchbereich, sucht den zufällig platzierten Knochen, bellt, kehrt zurück und setzt sich mit einem Abschlusston. Haltung und Lob werden als Text im 3D-Fenster angezeigt. Ein Bedienfenster sendet alle Befehle und setzt die Welt zurück.
 - **Tests:** `pixi run test` führt Unit-Tests, einen ROS-Integrationstest und die Linter aus.
 - **Prototypen entfernt (25.11.2026):** Die früheren Sprach- und Gesten-Prototypen (`prototypes/`, eigene venvs, UDP) und der alte Ablauf mit `such_driver` (Paket `pren_control`) sind gelöscht; ihre Logik steckt in `pren_perception` und `pren_behavior`. Die Testskripte T1–T3a liegen unter `testnachweis/`.
 

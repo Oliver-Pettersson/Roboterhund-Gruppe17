@@ -67,11 +67,45 @@ Jeder Node ist eine dünne Hülle: Parameter lesen, Topics verbinden, Messages u
 | HIER | Sprache | 0,5 m auf die Person zu, dann stehen |
 | BRAV | Sprache | Signal `PRAISE`, Zustand bleibt |
 | SITZ | Sprache, Geste | Stopp, Haltung `SIT` |
-| SUCH | Sprache | Drehen, Suchbereich absuchen, Knochen anfahren, bellen, zurück, zum Schiedsrichter drehen |
+| SUCH | Sprache | Drehen, Suchbereich absuchen, Knochen anfahren, bellen, zurück, zum Schiedsrichter drehen, dann sitzen mit Abschlusston (Anforderung 5.8) |
 | PLATZ | Geste | Stopp, Haltung `LIE` |
 | AUF | Geste | Haltung `STAND` |
 
 Während SUCH läuft, werden alle Befehle ignoriert. Befehle aus einer nicht erlaubten Quelle werden ignoriert (`enforce_command_sources` in `config/behavior.yaml`). Das Bedienfenster darf alle Befehle senden.
+
+### Zustände
+
+`DogStateMachine` (Wert von `RobotState.state`):
+
+```mermaid
+stateDiagram-v2
+    [*] --> STANDING
+    STANDING --> SITTING: SITZ
+    STANDING --> LYING: PLATZ
+    SITTING --> STANDING: AUF
+    LYING --> STANDING: AUF
+    STANDING --> COMING: HIER
+    COMING --> STANDING: 0,5 m gefahren
+    STANDING --> SEARCHING: SUCH
+    SITTING --> SEARCHING: SUCH
+    LYING --> SEARCHING: SUCH
+    SEARCHING --> SITTING: Suche beendet (Ton MISSION_COMPLETE)
+```
+
+SITZ, PLATZ, AUF und HIER sind aus jedem Zustand ausser SEARCHING möglich; BRAV sendet nur `PRAISE`. Reset führt immer zurück nach STANDING. In SEARCHING ist `busy` gesetzt und alle Befehle werden abgelehnt.
+
+`SearchMission` (Wert von `RobotState.activity` während der Suche):
+
+| Phase | Ende der Phase |
+| --- | --- |
+| Zum Suchbereich drehen | um 180° gedreht |
+| Suchbereich absuchen | Knochen gesehen; nach 4,6 m ohne Fund zurück |
+| Knochen anfahren | 3 Messungen in Folge ≤ 0,32 m → Signal `BARK`; Knochen > 1,5 s weg → weitersuchen |
+| Knochen gefunden | 2,2 s |
+| Zurück zum Startfeld fahren | ≤ 0,15 m am Start |
+| Zum Schiedsrichter drehen | ausgerichtet → Signal `MISSION_COMPLETE`, Haltung `SIT`, Zustand SITTING |
+
+Haltung `SIT` und Signal `MISSION_COMPLETE` kommen im selben Regelschritt und genau einmal. Danach sind wieder alle Befehle frei (z. B. AUF zum Aufstehen).
 
 ## Bauen, testen, starten
 

@@ -3,7 +3,8 @@ Automatischer Abnahmetest gegen die laufende Simulation.
 
 Spielt alle Befehle ueber /pren/dog_command ein (Quelle "gui") und prueft die Reaktion:
     * SITZ, PLATZ, AUF aendern die Haltung, BRAV gibt ein Lob-Signal, HIER faehrt 0,5 m.
-    * SUCH: Knochen finden, genau einmal bellen, zurueck ins Startfeld, Dauer messen.
+    * SUCH: Knochen finden, genau einmal bellen, zurueck ins Startfeld, dort sitzen und
+      den Abschlusston geben (MISSION_COMPLETE), Dauer messen.
     * Waehrend SUCH werden andere Befehle ignoriert.
 Die Suche wird mehrmals mit jeweils neu platziertem Knochen wiederholt.
 
@@ -146,9 +147,15 @@ class SimulationCheck(Node):
         duration = time.monotonic() - started
         barks = self.signals.count(DogSignal.BARK)
         home = math.hypot(*self.position)
-        self.wait_until(lambda: not self.state.busy, 3.0)
-        self.record(f'SUCH Lauf {run}', busy and locked and done and barks == 1 and home < 0.25,
+        # Ende sitzend mit Ton (Anforderung 5.8), danach keine Sperre mehr.
+        sitting = self.wait_until(lambda: self.posture == Posture.SIT
+                                  and self.state.state == 'SITTING' and not self.state.busy, 3.0)
+        finals = self.signals.count(DogSignal.MISSION_COMPLETE)
+        self.record(f'SUCH Lauf {run}',
+                    busy and locked and done and barks == 1 and home < 0.25 and sitting
+                    and finals == 1,
                     f'({duration:.1f} s, {barks}x gebellt, {home:.2f} m vom Start, '
+                    f'{"sitzt" if sitting else "sitzt NICHT"}, {finals}x Abschlusston, '
                     f'Sperre {"aktiv" if locked else "FEHLT"})')
 
     def run_all(self) -> bool:
