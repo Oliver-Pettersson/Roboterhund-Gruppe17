@@ -1,5 +1,7 @@
 # Schnittstellenspezifikation & Integrationsleitfaden: PREN Roboterhund (Gruppe 17)
 
+> **Historisch (Stand 13.11.2026).** Dieses Dokument beschreibt den früheren Prototyp-Ablauf mit String-Topics, UDP, `pren_control/such_driver` und den Prototypen unter `prototypes/`. Am 25.11.2026 wurden `pren_control`, `simulation_prototype.launch.py`, `/pren/reset_done` und die Prototypen entfernt. Den aktuellen Stand beschreibt [ARCHITEKTUR.md](ARCHITEKTUR.md); Abschnitt 7 (Hardware-Mapping) gilt als Plan weiterhin sinngemäss.
+
 Dieses Dokument spezifiziert alle software- und hardwareseitigen Schnittstellen des PREN-Roboterhundes. Es dient als verbindliche Referenz, um die bestehenden Prototypen für **Voice Detection** und **Gesture Recognition** nahtlos in die ROS-2-Gesamtarchitektur und die Webots-Simulation einzubinden.
 
 ---

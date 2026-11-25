@@ -7,6 +7,5 @@
 | `pren_behavior` | Verhalten des Hundes (Zustandsautomat, SUCH, HIER) |
 | `pren_simulation` | Webots-Bridge und Bedienfenster |
 | `pren_bringup` | Launch-Dateien und Konfiguration |
-| `pren_control` | Alter Prototyp-Ablauf (`such_driver`), nicht mehr weiterentwickelt |
 
 Aufbau und Topics: [docs/ARCHITEKTUR.md](../../docs/ARCHITEKTUR.md). Bauen und testen aus dem Repository-Root mit `pixi run build` und `pixi run test`.

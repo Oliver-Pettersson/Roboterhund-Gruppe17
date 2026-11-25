@@ -1,238 +1,208 @@
 # PREN Simulation Setup & User Guide
 
-Dieses Dokument führt Schritt für Schritt durch die Installation, Konfiguration und Ausführung der vollständigen **PREN-Simulation (Roboterhund Gruppe 17)** unter Windows 11.
+Dieses Dokument führt durch Installation und Betrieb der **PREN-Simulation (Roboterhund Gruppe 17)** unter Windows 11. Aufbau, Topics und Verhalten der ROS-2-Nodes stehen in [docs/ARCHITEKTUR.md](../docs/ARCHITEKTUR.md).
 
 ---
 
 ## Inhaltsverzeichnis
 
 1. [Systemvoraussetzungen](#1-systemvoraussetzungen)
-2. [Einmalige Installation & Vorbereitung](#2-einmalige-installation--vorbereitung)
-3. [Simulation starten (Schnellstart)](#3-simulation-starten-schnellstart)
+2. [Einmalige Installation](#2-einmalige-installation)
+3. [Simulation starten](#3-simulation-starten)
 4. [Ablauf, Befehle & Suchmission](#4-ablauf-befehle--suchmission)
-5. [Simulator Control Panel & Reset-Funktionen](#5-simulator-control-panel--reset-funktionen)
-6. [Architektur & Schnittstellen](#6-architektur--schnittstellen)
-7. [Fehlerbehebung (Troubleshooting)](#7-fehlerbehebung-troubleshooting)
+5. [Bedienfenster & Reset](#5-bedienfenster--reset)
+6. [Aufbau & Schnittstellen](#6-aufbau--schnittstellen)
+7. [Fehlerbehebung](#7-fehlerbehebung)
 
 ---
 
 ## 1. Systemvoraussetzungen
 
 * **Betriebssystem:** Windows 11 (64-Bit)
-* **Paketmanager:** [Pixi](https://pixi.sh/) (Version 0.79 oder neuer)
+* **Paketmanager:** [Pixi](https://pixi.sh/). Pixi installiert ROS 2 Jazzy, Vosk, MediaPipe und sounddevice in einer gemeinsamen Umgebung.
 * **Robotik-Simulator:** [Webots R2025a](https://cyberbotics.com/)
   * Standard-Installationspfad: `%LOCALAPPDATA%\Programs\Webots` oder `C:\Program Files\Webots`
-* **Python für Standalone-Prototypen:** Python 3.11 (64-Bit)
-  * Wird für die Prototypen `prototypes/voice_detection` und `prototypes/gesture_recognition` benötigt.
-* **Hardware:**
-  * Mikrofon (für die Vosk-Sprachsteuerung)
-  * Webcam (für die MediaPipe-Gestenerkennung)
+* **Hardware (optional):** Mikrofon für die Sprachbefehle, Webcam für die Gesten. Ohne beides lässt sich alles über das Bedienfenster steuern.
 
 ---
 
-## 2. Einmalige Installation & Vorbereitung
+## 2. Einmalige Installation
 
-Öffnen Sie ein PowerShell- oder Eingabeaufforderungs-Terminal im Hauptverzeichnis des Projekts (`Roboterhund-Gruppe17`):
-
-### Schritt 2.1: Pixi- und ROS-2-Umgebung einrichten
+Im Hauptverzeichnis des Projekts (`Roboterhund-Gruppe17`):
 
 ```powershell
-# Pixi-Abhängigkeiten installieren (ROS 2 Jazzy, Cyclone DDS, Colcon)
+# Pixi-Umgebung installieren (ROS 2 Jazzy, Cyclone DDS, Colcon, Vosk, MediaPipe)
 pixi install
 
-# Prüfen, ob ROS 2 bereit ist
-pixi run ros2 --help
+# ROS-2-Workspace bauen und testen
+pixi run build
+pixi run test
 ```
 
-### Schritt 2.2: ROS-2-Workspace bauen
-
-```powershell
-cd workspace
-pixi run colcon build --merge-install
-cd ..
-```
-
-### Schritt 2.3: Python-3.11-Umgebungen für Sprach- und Gestenerkennung anlegen
-
-Die Prototypen für Sprach- und Gestenerkennung laufen in isolierten Python 3.11 Virtual Environments, um Versionskonflikte mit der ROS-2-Conda-Umgebung (Python 3.12) auszuschliessen.
-
-```powershell
-# 1. Virtual Environment für Spracherkennung erstellen & Abhängigkeiten installieren:
-py -3.11 -m venv prototypes\voice_detection\.venv
-prototypes\voice_detection\.venv\Scripts\pip install -r prototypes\voice_detection\requirements.txt
-
-# 2. Virtual Environment für Gestenerkennung erstellen & Abhängigkeiten installieren:
-py -3.11 -m venv prototypes\gesture_recognition\.venv
-prototypes\gesture_recognition\.venv\Scripts\pip install -r prototypes\gesture_recognition\requirements.txt
-```
-
-> **Hinweis zu KI-Modellen:**
-> * Das deutsche Vosk-Akustikmodell (`vosk-model-small-de-0.15`, ca. 45 MB) wird beim ersten Start automatisch nach `prototypes/voice_detection/models/` heruntergeladen.
-> * Das MediaPipe-Handmodell (`hand_landmarker.task`, ca. 8 MB) wird ebenfalls automatisch nach `prototypes/gesture_recognition/` geladen.
+> **Modelle (einmalig herunterladen):** Das Vosk-Modell `vosk-model-small-de-0.15` gehört nach `models/voice/`, das MediaPipe-Handmodell `hand_landmarker.task` nach `models/gesture/`. Download-Links: [models/voice/README.md](../models/voice/README.md) und [models/gesture/README.md](../models/gesture/README.md). Ohne Modelle startet die Simulation mit `voice:=false gesture:=false`.
 
 ---
 
-## 3. Simulation starten (Schnellstart)
+## 3. Simulation starten
 
-### Der 1-Klick-Start (Empfohlen)
+### 1-Klick-Start (empfohlen)
 
-Doppelklicken Sie im Projektverzeichnis auf:
-👉 **`scripts\start_simulation.bat`**
-*(oder in PowerShell: `.\scripts\start_simulation.ps1`)*
+Doppelklick auf 👉 **`scripts\start_simulation.bat`** (oder in PowerShell `.\scripts\start_simulation.ps1`).
 
-Dieses Skript führt automatisch folgende Schritte aus:
-1. Überprüft die Pfade zu Pixi und Webots.
-2. Baut den ROS-2-Workspace mit `colcon build --merge-install`.
-3. Startet Webots mit der Welt [`pren_simulation.wbt`](file:///c:/Users/Oliver/Documents/Roboterhund-Gruppe17/simulation/webots/worlds/pren_simulation.wbt).
-4. Verbindet die externe Roboterbrücke [`webots_bridge.py`](file:///c:/Users/Oliver/Documents/Roboterhund-Gruppe17/simulation/webots/controllers/webots_bridge/webots_bridge.py) über Port 1234.
-5. Richtet die Webots-Kamera automatisch zentriert über dem Startfeld mit Blick in den Suchsektor aus.
-6. Startet den autonomen FSM-Suchknoten [`such_driver.py`](file:///c:/Users/Oliver/Documents/Roboterhund-Gruppe17/workspace/src/pren_control/pren_control/such_driver.py) im Ruhezustand (IDLE).
-7. Öffnet das **Simulator Control Panel** ([`reset_button_gui.py`](file:///c:/Users/Oliver/Documents/Roboterhund-Gruppe17/workspace/src/pren_control/pren_control/reset_button_gui.py)).
-8. Startet parallel das Dashboard der **Spracherkennung** ([`voice_control.py`](file:///c:/Users/Oliver/Documents/Roboterhund-Gruppe17/prototypes/voice_detection/voice_control.py)).
-9. Startet parallel das Fenster der **Gestenerkennung** ([`gesture_control.py`](file:///c:/Users/Oliver/Documents/Roboterhund-Gruppe17/prototypes/gesture_recognition/gesture_control.py)).
+Das Skript
+1. prüft die Pfade zu Pixi und Webots,
+2. baut den ROS-2-Workspace mit `colcon build --merge-install`,
+3. startet `ros2 launch pren_bringup simulation.launch.py`. Diese Launch-Datei startet:
+   * Webots mit der Welt `simulation/webots/worlds/pren_simulation.wbt`,
+   * die Webots-Bridge (`simulation/webots/controllers/pren_bridge/pren_bridge.py`, Logik im Paket `pren_simulation`) über Port 1234,
+   * `dog_behavior` (Zustandsautomat, Paket `pren_behavior`),
+   * das Bedienfenster `control_panel`,
+   * die Wahrnehmung: `camera`, `gesture_command` und `voice_command` (Paket `pren_perception`).
 
-### Alternativ: Manueller Start über ROS-2-Launch
+### Manueller Start und Optionen
 
 ```powershell
 pixi run cmd /c "cd workspace && call .\install\local_setup.bat && ros2 launch pren_bringup simulation.launch.py"
 ```
 
-Optionale Launch-Argumente:
+Launch-Argumente:
 ```powershell
-# Ohne Gestenerkennung starten (z. B. wenn keine Webcam vorhanden ist):
-ros2 launch pren_bringup simulation.launch.py launch_gesture:=false
+# Ohne Kamera und Gestenerkennung (z. B. ohne Webcam):
+ros2 launch pren_bringup simulation.launch.py gesture:=false
 
-# Ohne Spracherkennung starten (z. B. wenn kein Mikrofon vorhanden ist):
-ros2 launch pren_bringup simulation.launch.py launch_voice:=false
+# Ohne Spracherkennung (z. B. ohne Mikrofon):
+ros2 launch pren_bringup simulation.launch.py voice:=false
+
+# Ohne Bedienfenster:
+ros2 launch pren_bringup simulation.launch.py control_panel:=false
+
+# Für automatische Tests: Webots minimiert, ohne Darstellung, eigener Port
+ros2 launch pren_bringup simulation.launch.py webots_gui:=false webots_port:=1240
 ```
+
+### Automatischer Abnahmetest
+
+Bei laufender Simulation spielt `simulation_check` alle Befehle ein und prüft die Reaktion (Haltung, Lob, HIER, SUCH mit Rückkehr, Befehlssperre während SUCH):
+
+```powershell
+pixi run cmd /c "cd workspace && call .\install\local_setup.bat && ros2 run pren_simulation simulation_check --ros-args -p search_runs:=5"
+```
+
+Exit-Code 0 bedeutet: alles bestanden.
 
 ---
 
 ## 4. Ablauf, Befehle & Suchmission
 
 ### Ausgangssituation
-* Der Roboter (Pioneer 3-DX) startet auf der grünen Markierung im Startfeld bei $(0, 0)$.
-* Er ist um **180 Grad abgewandt** vom Suchbereich ausgerichtet (`rotation 0 0 1 3.14159`) und blickt direkt zum Interaktionsbereich (Schiedsrichter).
-* Der Knochen (brauner Zylinder) wird bei jedem Start zufällig an eine neue Position im $30^\circ$-Suchsektor platziert.
+* Der Roboter (Pioneer 3-DX) startet im Startfeld bei $(0, 0)$, um 180 Grad vom Suchbereich abgewandt, mit Blick zum Schiedsrichter.
+* Der Knochen wird bei jedem Start und Reset zufällig im Suchsektor platziert.
+* Die Knochenerkennung ist in der Simulation ein Sichtkegel von ±22,5° und 3 m Reichweite, berechnet aus den Positionen in Webots.
 
-### Befehle im Ruhezustand (IDLE)
-Solange die Suche noch nicht gestartet wurde, nimmt der Roboter folgende Sprach- und Gestenbefehle entgegen:
+### Befehle
 
-| Befehl | Quelle | Bedeutung |
+| Befehl | Quelle laut Aufgabe | Reaktion |
 | :--- | :--- | :--- |
-| **«SITZ»** | Sprache oder Geste (Offene Handfläche) | Roboter nimmt Sitz-Haltung ein |
-| **«PLATZ»** | Sprache oder Geste (Zeigefinger nach unten) | Roboter legt sich ab |
-| **«AUF»** | Sprache oder Geste (Zeigefinger nach oben) | Roboter steht auf und ist bereit |
-| **«HIER»** | Sprache | Roboter richtet Aufmerksamkeit auf Schiedsrichter |
-| **«SUCH»** | Sprache | **Startet die autonome Suchmission!** |
+| **SITZ** | Sprache oder Geste (offene Hand, aufrecht) | Haltung SITZ, Hund steht still |
+| **PLATZ** | Geste (Zeigefinger nach unten) | Haltung PLATZ |
+| **AUF** | Geste (Zeigefinger nach oben) | Haltung STEHEN |
+| **HIER** | Sprache | Fährt 0,5 m auf die Person zu |
+| **BRAV** | Sprache | Lob-Signal, Zustand bleibt |
+| **SUCH** | Sprache | Startet die Suchmission |
 
-### Der Suchablauf («Such»)
-Sobald das Schlüsselwort **«Such»** über das Mikrofon erkannt wird:
+Befehle aus einer nicht erlaubten Quelle (z. B. PLATZ per Sprache) werden ignoriert. Das Bedienfenster darf zum Testen alle Befehle senden. Haltung und Lob zeigt die Simulation als Text im 3D-Fenster an.
+
+### Suchablauf (SUCH)
 
 ```mermaid
 flowchart TD
-    A["Kommando «SUCH»"] --> B["1. 180°-Drehung zum Suchsektor"]
-    B --> C["2. Sektor-Sweep (0.36 m/s, 2x Speed)"]
-    C -->|Knochen im Sichtkegel| D["3. Zielanfahrt auf braunen Knochen"]
-    D -->|Distanz <= 0.32 m| E["4. Fund: 1x Bellen & Lichteffekt (2.2 s)"]
-    E --> F["5. Autonome Rückfahrt zu (0,0) (0.44 m/s, 2x Speed)"]
-    F -->|Startfeld erreicht| G["6. 180°-Drehung zurück zum Schiedsrichter"]
-    G --> H["7. Mission Beendet & Victory Chime"]
+    A["Befehl SUCH"] --> B["1. 180°-Drehung zum Suchbereich"]
+    B --> C["2. Suchbereich in Schlangenlinien absuchen (0,36 m/s)"]
+    C -->|Knochen im Sichtkegel| D["3. Knochen anfahren"]
+    C -->|4,6 m ohne Fund| F
+    D -->|3 Messungen in Folge <= 0,32 m| E["4. Gefunden: einmal bellen (2,2 s)"]
+    D -->|Knochen > 1,5 s verloren| C
+    E --> F["5. Rückfahrt ins Startfeld (0,44 m/s)"]
+    F --> G["6. Drehung zurück zum Schiedsrichter"]
+    G --> H["7. Mission beendet"]
 ```
 
-> **Wichtig – Befehlssperre während der Suche:**
-> Während der Roboter die Suchmission ausführt (Schritte 1 bis 6), sind alle weiteren Sprach- und Gestenbefehle **gesperrt**. Der Roboter lässt sich nicht durch Zwischenrufe ablenken. Erst nach vollständiger Rückkehr ins Startfeld und $180^\circ$-Drehung zum Schiedsrichter ist die Sperre wieder aufgehoben.
+> **Befehlssperre während der Suche:** Solange SUCH läuft, werden alle anderen Befehle ignoriert. Erst nach der Rückkehr und der Drehung zum Schiedsrichter nimmt der Hund wieder Befehle an. Die Werte stehen in `workspace/src/pren_bringup/config/behavior.yaml`.
 
 ---
 
-## 5. Simulator Control Panel & Reset-Funktionen
+## 5. Bedienfenster & Reset
 
-Während der Simulation läuft im Vordergrund das kompakte **Simulator Control Panel**:
-
-* **Live-Statusanzeige:**
-  * **Phase:** Aktueller FSM-Zustand des Such-Treibers
-  * **Position:** $X$- und $Y$-Koordinaten des Roboters in Metern
-  * **Sichtkegel:** Ob der Knochen aktuell im virtuellen $45^\circ$-Sichtkegel erfasst ist
-  * **Letzter Befehl:** Zuletzt über Sprache oder Geste empfangenes Kommando
-* **Button «🔄 Setup Neustarten / Reset»:**
-  * Setzt den Roboter sofort auf $(0, 0)$ zurück (wieder um $180^\circ$ gedreht).
-  * Würfelt eine neue zufällige Knochenposition im $30^\circ$-Sektor aus.
-  * Schaltet Audio und Lichteffekte sofort ab.
-  * Zentriert die Webots-Kamera wieder über dem Startfeld.
-  * Setzt den Status auf IDLE zurück (wartet auf neue Befehle).
+Das **Bedienfenster** (`control_panel`, Paket `pren_simulation`):
+* hat Knöpfe für alle sechs Befehle (Quelle `gui`), damit sich das Verhalten auch ohne Mikrofon und Kamera testen lässt,
+* zeigt Zustand und Tätigkeit des Hundes, den letzten Befehl mit Quelle, die Position und die Knochenerkennung,
+* hat einen **Reset**-Knopf. Er setzt den Roboter ins Startfeld zurück, platziert den Knochen neu, stoppt Ton und Licht, zentriert die Kamera und bricht jede laufende Aufgabe ab.
 
 ### Weitere Reset-Möglichkeiten
-* **Tastatur-Reset:** Drücken Sie die Taste **`R`** direkt im 3D-Fenster von Webots.
-* **Skript:** Doppelklicken Sie auf [`scripts\reset_simulation.bat`](file:///c:/Users/Oliver/Documents/Roboterhund-Gruppe17/scripts/reset_simulation.bat).
-* **Terminal:** `pixi run ros2 topic pub --once /pren/reset std_msgs/msg/Empty "{}"`
+* **Tastatur:** Taste **`R`** im 3D-Fenster von Webots.
+* **Skript:** Doppelklick auf `scripts\reset_simulation.bat`.
+* **Terminal:** `ros2 topic pub --once /pren/reset std_msgs/msg/Empty "{}"`
 
 ---
 
-## 6. Architektur & Schnittstellen
+## 6. Aufbau & Schnittstellen
 
 ### Verzeichnisstruktur
 ```text
 Roboterhund-Gruppe17/
-├── prototypes/
-│   ├── voice_detection/         # Vosk Offline German Speech Engine
-│   │   ├── voice_control.py     # Sprachsteuerung GUI & UDP-Sender
-│   │   └── requirements.txt
-│   └── gesture_recognition/     # MediaPipe 3D Hand Tracking
-│       ├── gesture_control.py   # Gestensteuerung GUI & UDP-Sender
-│       └── requirements.txt
 ├── simulation/
 │   └── webots/
 │       ├── controllers/
-│       │   └── webots_bridge/   # Supervisor Bridge zwischen Webots & ROS 2
-│       ├── sounds/              # Audio-Dateien (Bellen, Chime)
+│       │   └── pren_bridge/     # Startet die Bridge aus pren_simulation
+│       ├── sounds/              # Bellen, Abschluss-Ton
 │       └── worlds/
-│           └── pren_simulation.wbt  # Webots 3D-Welt
-├── workspace/
-│   └── src/
-│       ├── pren_bringup/        # Launchfiles (simulation.launch.py)
-│       └── pren_control/        # FSM-Treiber (such_driver.py, reset_gui.py)
+│           └── pren_simulation.wbt
+├── workspace/src/
+│   ├── pren_interfaces/         # Messages
+│   ├── pren_perception/         # Kamera, Sprache, Gesten, Knochen
+│   ├── pren_behavior/           # Zustandsautomat, SUCH, HIER
+│   ├── pren_simulation/         # Webots-Bridge, Bedienfenster, simulation_check
+│   └── pren_bringup/            # Launch-Dateien, config/*.yaml
+├── testnachweis/                # Tests T1–T3a am Laptop
 └── scripts/
-    ├── start_simulation.bat     # 1-Klick Start (Batch)
-    ├── start_simulation.ps1     # 1-Klick Start (PowerShell)
-    └── reset_simulation.bat     # Schneller Reset
+    ├── start_simulation.bat / .ps1
+    └── reset_simulation.bat / .ps1
 ```
 
 ### Wichtigste ROS-2-Topics
 
-| Topic | Typ | Richtung | Beschreibung |
-| :--- | :--- | :--- | :--- |
-| `/pren/command` | `std_msgs/msg/String` | Extern $\rightarrow$ ROS | Steuerbefehl («SUCH», «SITZ», «PLATZ», etc.) |
-| `/cmd_vel` | `geometry_msgs/msg/Twist` | Driver $\rightarrow$ Bridge | Geschwindigkeitsbefehle für den Pioneer |
-| `/odom` | `nav_msgs/msg/Odometry` | Bridge $\rightarrow$ Driver | Roboterposition und Orientierung (Yaw) |
-| `/pren/bone_detection` | `geometry_msgs/msg/PointStamped` | Bridge $\rightarrow$ Driver | Knochenabstand ($X$), Peilwinkel ($Y$), Flag ($Z$) |
-| `/pren/search_status` | `std_msgs/msg/String` | Driver $\rightarrow$ GUI | Aktueller Zustand der Zustandsmaschine |
-| `/pren/reset` | `std_msgs/msg/Empty` | GUI $\rightarrow$ Bridge/Driver | Löst sofortigen Reset aus |
+| Topic | Typ | Von → An |
+| :--- | :--- | :--- |
+| `/pren/dog_command` | `pren_interfaces/DogCommand` | Sprache, Gesten, Bedienfenster → `dog_behavior` |
+| `/cmd_vel` | `geometry_msgs/Twist` | `dog_behavior` → Bridge |
+| `/pren/posture` | `pren_interfaces/Posture` | `dog_behavior` → Bridge |
+| `/pren/dog_signal` | `pren_interfaces/DogSignal` | `dog_behavior` → Bridge (Bellen, Lob, Abschluss) |
+| `/pren/robot_state` | `pren_interfaces/RobotState` | `dog_behavior` → Bridge, Bedienfenster |
+| `/odom` | `nav_msgs/Odometry` | Bridge → `dog_behavior`, Bedienfenster |
+| `/pren/bone_detection` | `pren_interfaces/BoneDetection` | Bridge (simulierter Sichtkegel) → `dog_behavior` |
+| `/pren/reset` | `std_msgs/Empty` | Bedienfenster, Skript → `dog_behavior`, Bridge |
 
-Weitere Schnittstellen- und Hardware-Details finden sich in [`docs/INTERFACES.md`](file:///c:/Users/Oliver/Documents/Roboterhund-Gruppe17/docs/INTERFACES.md).
+Alle Topics, Parameter und Zustände: [docs/ARCHITEKTUR.md](../docs/ARCHITEKTUR.md).
 
 ---
 
-## 7. Fehlerbehebung (Troubleshooting)
+## 7. Fehlerbehebung
 
-### Problem: `ImportError: DLL load failed` oder `_multiarray_umath` in NumPy
-* **Ursache:** Vermischung von Python 3.12 (Pixi) mit den Python 3.11 Virtual Environments über die `PYTHONPATH`-Variable.
-* **Lösung:** In `simulation.launch.py` ist das Flag `-E` bereits integriert. Falls Sie einen Prototyp manuell im Terminal starten, bereinigen Sie vorher die Umgebung:
-  ```powershell
-  $env:PYTHONPATH = ""
-  $env:PYTHONHOME = ""
-  prototypes\voice_detection\.venv\Scripts\python.exe prototypes\voice_detection\voice_control.py
-  ```
+### Webots stürzt beim Start ab (0xC0000374)
+* **Ursache:** Webots lädt Qt-Plugins aus der Pixi-Umgebung.
+* **Lösung:** `simulation.launch.py` startet Webots bereits ohne Pixi-Umgebung. Webots nicht selbst aus einer `pixi shell` heraus starten.
 
-### Problem: `Connection failed on port 1234` in Webots
-* **Ursache:** Eine frühere Webots-Instanz läuft noch im Hintergrund und belegt Port 1234.
-* **Lösung:** Schliessen Sie Webots oder beenden Sie hängende Prozesse im Task-Manager:
+### `Connection failed on port 1234` in Webots
+* **Ursache:** Eine frühere Webots-Instanz läuft noch und belegt Port 1234.
+* **Lösung:** Webots schliessen oder hängende Prozesse beenden:
   ```powershell
   Stop-Process -Name "webots", "webots-bin" -Force -ErrorAction SilentlyContinue
   ```
 
-### Problem: Webcam oder Mikrofon wird nicht erkannt
-* **Kamera:** Überprüfen Sie in Windows unter *Einstellungen > Datenschutz & Sicherheit > Kamera*, ob Desktop-Apps Zugriff auf die Kamera haben. Passen Sie bei Bedarf `--camera-id 1` an.
-* **Mikrofon:** Führen Sie `prototypes\voice_detection\.venv\Scripts\python.exe prototypes\voice_detection\voice_control.py --list-devices` aus, um die verfügbaren Audio-Eingänge anzuzeigen.
+### Webcam oder Mikrofon wird nicht erkannt
+* **Kamera:** In Windows unter *Einstellungen > Datenschutz & Sicherheit > Kamera* den Zugriff für Desktop-Apps erlauben. Eine externe Webcam stellt man in `workspace/src/pren_bringup/config/perception.yaml` mit `camera.device: 1` ein.
+* **Mikrofon:** Liste der Eingänge mit `pixi run python -m sounddevice`, dann `voice_command.device` in `perception.yaml` setzen (`-1` = Standardmikrofon).
+* Ohne Kamera oder Mikrofon mit `gesture:=false` bzw. `voice:=false` starten.
 
-### Problem: Kamera in Webots ist dezentriert
-* Drücken Sie im Simulator Control Panel auf **«🔄 Setup Neustarten / Reset»**; der Controller setzt die Kamera automatisch wieder auf die Idealposition über der Plattform zurück.
+### Kamera in Webots ist dezentriert
+* Reset im Bedienfenster oder Taste `R`: die Kamera wird wieder über dem Startfeld zentriert.

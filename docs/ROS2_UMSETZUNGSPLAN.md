@@ -2,6 +2,8 @@
 
 Stand: 13.11.2026 · Branch `liano/ros2-struktur` · Status: **Schritte 0 bis 8 umgesetzt** (Ergebnis: [ARCHITEKTUR.md](ARCHITEKTUR.md))
 
+> **Nachtrag 25.11.2026:** `pren_control` (mit `such_driver`), `simulation_prototype.launch.py` und die Prototypen unter `prototypes/` sind entfernt. Die Modelle liegen unter `models/`, die Testskripte unter `testnachweis/`. Der Plan unten ist der historische Stand.
+
 ## Abweichungen bei der Umsetzung
 
 - Alle Befehle laufen ueber ein Topic `/pren/dog_command`; die Quelle steht im Feld `source`. Das ist einfacher als je ein Topic pro Quelle und genauso nachvollziehbar.

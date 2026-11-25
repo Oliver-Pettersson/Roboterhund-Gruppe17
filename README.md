@@ -22,10 +22,10 @@ Auf diesem Windows-System verwendet die Umgebung Cyclone DDS und bindet die loka
 
 | Pfad | Inhalt |
 | --- | --- |
-| `prototypes/` | Ursprüngliche Gesture- und Voice-Prototypen und Testskripte (T1–T3) |
+| `testnachweis/` | Testskripte T1–T3a (Sprache, Gesten, Kamera) und Ergebnisse |
 | `workspace/src/` | ROS-2-Pakete: Interfaces, Wahrnehmung, Verhalten, Simulation und Bringup |
 | `simulation/webots/` | Bestehende Webots-Welten, Controller und PROTO-Modelle |
-| `models/bone_detection/` | Ablagehinweise für lokale Bone-Detection-Modelle |
+| `models/` | Lokale Modelle (Vosk, MediaPipe, YOLO), nicht versioniert; Bezug in den README-Dateien |
 | `config/` | Projektweite Konfigurationen |
 | `scripts/` | Hilfsskripte für Entwicklung und Betrieb |
 | `docs/` | Projektdokumentation |
@@ -39,7 +39,7 @@ Generierte Pixi-Umgebungen, ROS-Buildartefakte, Caches sowie große Modelle und 
 - **Befehle:** HIER, BRAV, SITZ, SUCH per Sprache; SITZ, PLATZ, AUF per Geste. Während SUCH läuft, werden alle anderen Befehle ignoriert.
 - **Simulation:** Webots mit Pioneer 3-DX. SUCH dreht zum Suchbereich, sucht den zufällig platzierten Knochen, bellt und kehrt zurück. Haltung und Lob werden als Text im 3D-Fenster angezeigt. Ein Bedienfenster sendet alle Befehle und setzt die Welt zurück.
 - **Tests:** `pixi run test` führt Unit-Tests, einen ROS-Integrationstest und die Linter aus.
-- **Prototypen** unter `prototypes/` bleiben für die Testskripte (T1–T3) unverändert. Der alte UDP-Ablauf ist mit `ros2 launch pren_bringup simulation_prototype.launch.py` weiterhin startbar.
+- **Prototypen entfernt (25.11.2026):** Die früheren Sprach- und Gesten-Prototypen (`prototypes/`, eigene venvs, UDP) und der alte Ablauf mit `such_driver` (Paket `pren_control`) sind gelöscht; ihre Logik steckt in `pren_perception` und `pren_behavior`. Die Testskripte T1–T3a liegen unter `testnachweis/`.
 
 ## Schnellstart Simulation
 
@@ -59,5 +59,5 @@ pixi run test
 
 * 📖 **[Simulations-Handbuch & Setup-Guide](simulation/README.md)** – Vollständige Anleitung zur Installation von Pixi, Webots und den Python-Virtual-Environments, Fehlerbehebung, FSM-Ablauf und Parametern.
 * 🧩 **[ROS-2-Architektur](docs/ARCHITEKTUR.md)** – Pakete, Nodes, Topics, Verhalten, Bauen und Testen.
-* 🛰️ **[Schnittstellen des Prototyp-Ablaufs](docs/INTERFACES.md)** – UDP-Bridge und `such_driver` (bisheriger Stand).
+* 🛰️ **[Schnittstellen des Prototyp-Ablaufs](docs/INTERFACES.md)** – UDP-Bridge und `such_driver` (historisch, entfernt; aktueller Stand in ARCHITEKTUR.md).
 

@@ -1,6 +1,6 @@
 # ROS-2-Architektur des Roboterhunds
 
-Stand: 13.11.2026. Dieses Dokument beschreibt die ROS-2-Pakete unter `workspace/src`. Der frühere Ablauf mit UDP und `such_driver` ist in [INTERFACES.md](INTERFACES.md) beschrieben und über `simulation_prototype.launch.py` weiterhin startbar.
+Stand: 25.11.2026. Dieses Dokument beschreibt die ROS-2-Pakete unter `workspace/src`. Der frühere Ablauf mit UDP und `such_driver` (Paket `pren_control`, `simulation_prototype.launch.py`) wurde am 25.11.2026 entfernt; er ist nur noch historisch in [INTERFACES.md](INTERFACES.md) beschrieben.
 
 ## Überblick
 
@@ -32,7 +32,6 @@ In der Simulation liefert `webots_bridge` `/odom` und `/pren/bone_detection` (si
 | `pren_perception` | `camera_node`, `voice_command_node`, `gesture_command_node`, `bone_detection_node` |
 | `pren_simulation` | Webots-Bridge (gestartet über `simulation/webots/controllers/pren_bridge`), `control_panel` |
 | `pren_bringup` | Launch-Dateien, `config/*.yaml`, Suche nach Webots und Modellen |
-| `pren_control` | Alter Stand (`such_driver`, `reset_gui`), nur noch für den Prototyp-Ablauf |
 
 ## Aufbau eines Nodes
 
@@ -114,13 +113,14 @@ ros2 run pren_simulation simulation_check --ros-args -p search_runs:=5
 
 ## Modelle
 
-Die Launch-Dateien suchen die Modelle zuerst unter `models/`, dann in den Prototyp-Ordnern:
+Die Launch-Dateien und Testskripte suchen die Modelle unter `models/`. Die Modelle sind
+nicht versioniert; Download-Quelle und Ablage stehen in der README des jeweiligen Ordners.
 
-| Modell | Neuer Ort | Bisheriger Ort |
-| --- | --- | --- |
-| Vosk `vosk-model-small-de-0.15` | `models/voice/` | `prototypes/voice_detection/models/` |
-| MediaPipe `hand_landmarker.task` | `models/gesture/` | `prototypes/gesture_recognition/` |
-| YOLO Knochen | `models/bone_detection/` | noch nicht trainiert |
+| Modell | Ort |
+| --- | --- |
+| Vosk `vosk-model-small-de-0.15` | `models/voice/` |
+| MediaPipe `hand_landmarker.task` | `models/gesture/` |
+| YOLO Knochen | `models/bone_detection/` (noch nicht trainiert) |
 
 ## Offene Punkte
 
