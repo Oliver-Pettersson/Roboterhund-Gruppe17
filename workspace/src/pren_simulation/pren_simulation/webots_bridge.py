@@ -11,7 +11,6 @@ Veroeffentlicht:
     /odom                nav_msgs/Odometry           (Ground Truth aus Webots)
     /joint_states        sensor_msgs/JointState      (Radencoder)
     /pren/bone_detection pren_interfaces/BoneDetection (simulierter Sichtkegel)
-    /pren/reset_done     std_msgs/Empty
 
 Gestartet wird die Datei von Webots ueber
 simulation/webots/controllers/pren_bridge/pren_bridge.py.
@@ -64,7 +63,6 @@ class WebotsBridgeNode(Node):
         self._odom_pub = self.create_publisher(Odometry, '/odom', 10)
         self._joint_pub = self.create_publisher(JointState, '/joint_states', 10)
         self._bone_pub = self.create_publisher(BoneDetection, '/pren/bone_detection', 10)
-        self._reset_done_pub = self.create_publisher(Empty, '/pren/reset_done', 10)
 
     def requested_velocity(self, now: float) -> tuple:
         """Letzter Fahrbefehl (linear, angular) oder Stillstand nach Timeout."""
@@ -125,10 +123,6 @@ class WebotsBridgeNode(Node):
         msg.bearing_rad = float(bearing) if visible else 0.0
         msg.confidence = 1.0 if visible else 0.0
         self._bone_pub.publish(msg)
-
-    def publish_reset_done(self) -> None:
-        """Meldet, dass die Welt zurueckgesetzt ist."""
-        self._reset_done_pub.publish(Empty())
 
 
 class SimulationLoop:
@@ -193,7 +187,6 @@ class SimulationLoop:
         self._node.appearance.reset()
         self._node.pending_signals.clear()
         self._node.reset_requested = False
-        self._node.publish_reset_done()
         self._node.get_logger().info('Simulation zurueckgesetzt.')
 
     def _place_bone_randomly(self) -> None:
