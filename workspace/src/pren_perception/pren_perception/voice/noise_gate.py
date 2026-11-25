@@ -1,7 +1,7 @@
 """
 Rauschfilter: nur Audio mit genug Lautstaerke wird an die Spracherkennung weitergegeben.
 
-Uebernommen aus prototypes/voice_detection/voice_control.py:
+Uebernommen aus dem frueheren Sprach-Prototyp (voice_control.py, entfernt am 25.11.2026):
     * Bloecke unter der Schwelle gelten als Umgebungsgeraeusch.
     * Die letzten leisen Bloecke vor dem Sprechen werden mitgegeben (pre-roll), damit
       Anlaute wie "S" oder "H" nicht abgeschnitten werden.

@@ -54,24 +54,20 @@ def test_find_file_searches_recursively(tmp_path):
     assert find_file(tmp_path, 'webots.exe') == target
 
 
-def test_vosk_model_prefers_models_folder(tmp_path):
-    new = tmp_path / 'models' / 'voice' / VOSK_MODEL_NAME
-    old = tmp_path / 'prototypes' / 'voice_detection' / 'models' / VOSK_MODEL_NAME
-    new.mkdir(parents=True)
-    old.mkdir(parents=True)
+def test_vosk_model_found_in_models_folder(tmp_path):
+    model = tmp_path / 'models' / 'voice' / VOSK_MODEL_NAME
+    model.mkdir(parents=True)
 
-    assert find_vosk_model(tmp_path) == new
+    assert find_vosk_model(tmp_path) == model
 
 
-def test_vosk_model_falls_back_to_prototype(tmp_path):
-    old = tmp_path / 'prototypes' / 'voice_detection' / 'models' / VOSK_MODEL_NAME
-    old.mkdir(parents=True)
-
-    assert find_vosk_model(tmp_path) == old
+def test_missing_vosk_model_names_the_expected_folder(tmp_path):
+    with pytest.raises(RuntimeError, match='voice'):
+        find_vosk_model(tmp_path)
 
 
-def test_hand_model_found_in_prototype(tmp_path):
-    model = tmp_path / 'prototypes' / 'gesture_recognition' / HAND_MODEL_NAME
+def test_hand_model_found_in_models_folder(tmp_path):
+    model = tmp_path / 'models' / 'gesture' / HAND_MODEL_NAME
     model.parent.mkdir(parents=True)
     model.write_text('')
 

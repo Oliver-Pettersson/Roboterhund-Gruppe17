@@ -1,5 +1,5 @@
 # Parameter der Wahrnehmung (pren_perception).
-# Die Modellpfade setzt die Launch-Datei automatisch (models/ oder prototypes/).
+# Die Modellpfade setzt die Launch-Datei automatisch (models/voice, models/gesture).
 
 camera:
   ros__parameters:
