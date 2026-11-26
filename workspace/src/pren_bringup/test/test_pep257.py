@@ -15,12 +15,9 @@
 from ament_pep257.main import main
 import pytest
 
-# Alter Start der Prototyp-Pipeline, wird nicht mehr weiterentwickelt.
-LEGACY_LAUNCH = './launch/simulation_prototype.launch.py'
-
 
 @pytest.mark.linter
 @pytest.mark.pep257
 def test_pep257():
-    rc = main(argv=['.', 'test', '--exclude', LEGACY_LAUNCH])
+    rc = main(argv=['.', 'test'])
     assert rc == 0, 'Found code style errors / warnings'

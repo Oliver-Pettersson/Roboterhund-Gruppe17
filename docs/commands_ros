@@ -6,6 +6,6 @@ Simulation starten: ros2 launch pren_bringup simulation.launch.py
 
 Programm laufen lassen:
 - Bauen (im Workspace): colcon build danach . .\install\local_setup.ps1
-- starten: ros2 run pren_control circle_driver
+- einzelnen Node starten, z. B.: ros2 run pren_behavior dog_behavior_node
 
 

@@ -148,8 +148,49 @@ def test_such_runs_complete_mission_with_bark_and_final_signal():
     signals = run(machine, world, seconds=60.0)
 
     assert signals == [DogSignal.BARK, DogSignal.MISSION_COMPLETE]
-    assert machine.state is DogState.STANDING
+    assert machine.state is DogState.SITTING
+    assert machine.posture is Posture.SIT
     assert not machine.is_busy
+
+
+def test_search_ends_sitting_in_the_same_step_as_the_final_signal():
+    """Anforderung 5.8: Ende sitzend mit Ton, Haltung und Ton kommen zusammen."""
+    machine = DogStateMachine()
+    world = SimulatedWorld(bone_x=3.0, bone_y=0.3)
+    machine.handle_command(Command.SUCH, VOICE)
+
+    final = None
+    for step in range(int(60.0 / DT)):
+        output = machine.update(world.pose, world.observe_bone(), step * DT)
+        world.drive(output.velocity, DT)
+        if DogSignal.MISSION_COMPLETE in output.signals:
+            final = output
+            break
+
+    assert final is not None
+    assert final.posture is Posture.SIT
+    assert final.velocity == STOP
+    assert final.signals.count(DogSignal.MISSION_COMPLETE) == 1
+
+
+def test_search_without_bone_also_ends_sitting():
+    machine = DogStateMachine()
+    world = SimulatedWorld(bone_x=50.0, bone_y=50.0)   # Knochen ausserhalb des Suchbereichs
+    machine.handle_command(Command.SUCH, VOICE)
+    signals = run(machine, world, seconds=90.0)
+
+    assert signals == [DogSignal.MISSION_COMPLETE]
+    assert machine.state is DogState.SITTING
+
+
+def test_dog_stands_up_with_auf_after_search():
+    machine = DogStateMachine()
+    world = SimulatedWorld(bone_x=2.0, bone_y=0.0)
+    machine.handle_command(Command.SUCH, VOICE)
+    run(machine, world, seconds=60.0)
+
+    assert machine.handle_command(Command.AUF, GESTURE).accepted
+    assert machine.posture is Posture.STAND
 
 
 @pytest.mark.parametrize('command, source', [

@@ -13,10 +13,9 @@ def find_model():
     if os.environ.get('PREN_VOSK_MODEL'):
         return Path(os.environ['PREN_VOSK_MODEL'])
     for parent in Path(__file__).resolve().parents:
-        for candidate in (parent / 'models' / 'voice' / MODEL_NAME,
-                          parent / 'prototypes' / 'voice_detection' / 'models' / MODEL_NAME):
-            if candidate.is_dir():
-                return candidate
+        candidate = parent / 'models' / 'voice' / MODEL_NAME
+        if candidate.is_dir():
+            return candidate
     return None
 
 

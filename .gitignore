@@ -51,9 +51,10 @@ desktop.ini
 *.db3
 *.mcap
 **/datasets/
-prototypes/voice_detection/models/*
-!prototypes/voice_detection/models/README.md
-prototypes/gesture_recognition/*.task
+models/voice/*
+!models/voice/README.md
+models/gesture/*
+!models/gesture/README.md
 models/bone_detection/*
 !models/bone_detection/README.md
 

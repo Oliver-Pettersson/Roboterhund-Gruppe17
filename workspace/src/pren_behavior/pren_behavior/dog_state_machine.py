@@ -4,6 +4,8 @@ Zustandsautomat des Hundes: entscheidet, wie der Hund auf einen Befehl reagiert.
 Regeln:
     * Jede Quelle darf nur die Befehle aus der Aufgabenstellung geben (abschaltbar).
     * Waehrend SUCH laeuft, werden alle anderen Befehle ignoriert.
+    * Am Ende von SUCH sitzt der Hund im Startfeld und gibt den Abschlusston
+      (MISSION_COMPLETE) aus (Anforderung 5.8). Danach sind Befehle wieder frei.
     * SITZ, PLATZ und AUF aendern nur die Haltung; der Hund steht still.
     * HIER faehrt ein kurzes Stueck auf die Person zu.
     * BRAV gibt ein Lob-Signal aus, der Zustand bleibt gleich.
@@ -168,8 +170,9 @@ class DogStateMachine:
                 _SEARCH_EVENT_TO_SIGNAL[event] for event in step.events
                 if event in _SEARCH_EVENT_TO_SIGNAL)
             if self._search.is_finished:
+                # Ende sitzend mit Ton: MISSION_COMPLETE kommt im selben Schritt als Signal.
                 self._search = None
-                self._become(DogState.STANDING, Posture.STAND)
+                self._become(DogState.SITTING, Posture.SIT)
 
         elif self._state is DogState.COMING and self._come_here is not None:
             velocity = self._come_here.update(pose)

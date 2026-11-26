@@ -5,8 +5,9 @@ Erkennt aus 21 MediaPipe-Handpunkten eine der drei Gesten.
     POINTING_UP   Zeigefinger nach oben (auch als "L")        -> AUF
     POINTING_DOWN Zeigefinger zum Boden, Handgelenk oben      -> PLATZ
 
-Die Regeln und Schwellwerte stammen unveraendert aus
-prototypes/gesture_recognition/gesture_classifier.py.
+Die Regeln und Schwellwerte stammen aus dem frueheren Gesten-Prototyp
+(gesture_classifier.py, entfernt am 25.11.2026). Seit dem 20.11.2026 muss die flache
+Hand zusaetzlich nach oben zeigen (OPEN_PALM_MIN_RISE, OPEN_PALM_MAX_SLOPE).
 
 Bildkoordinaten von MediaPipe: x nach rechts, y nach UNTEN, Werte 0 bis 1.
 """

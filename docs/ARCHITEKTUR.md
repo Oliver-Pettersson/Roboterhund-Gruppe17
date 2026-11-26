@@ -1,6 +1,6 @@
 # ROS-2-Architektur des Roboterhunds
 
-Stand: 13.11.2026. Dieses Dokument beschreibt die ROS-2-Pakete unter `workspace/src`. Der frühere Ablauf mit UDP und `such_driver` ist in [INTERFACES.md](INTERFACES.md) beschrieben und über `simulation_prototype.launch.py` weiterhin startbar.
+Stand: 25.11.2026. Dieses Dokument beschreibt die ROS-2-Pakete unter `workspace/src`. Der frühere Ablauf mit UDP und `such_driver` (Paket `pren_control`, `simulation_prototype.launch.py`) wurde am 25.11.2026 entfernt; er ist nur noch historisch in [INTERFACES.md](INTERFACES.md) beschrieben.
 
 ## Überblick
 
@@ -32,7 +32,6 @@ In der Simulation liefert `webots_bridge` `/odom` und `/pren/bone_detection` (si
 | `pren_perception` | `camera_node`, `voice_command_node`, `gesture_command_node`, `bone_detection_node` |
 | `pren_simulation` | Webots-Bridge (gestartet über `simulation/webots/controllers/pren_bridge`), `control_panel` |
 | `pren_bringup` | Launch-Dateien, `config/*.yaml`, Suche nach Webots und Modellen |
-| `pren_control` | Alter Stand (`such_driver`, `reset_gui`), nur noch für den Prototyp-Ablauf |
 
 ## Aufbau eines Nodes
 
@@ -68,11 +67,45 @@ Jeder Node ist eine dünne Hülle: Parameter lesen, Topics verbinden, Messages u
 | HIER | Sprache | 0,5 m auf die Person zu, dann stehen |
 | BRAV | Sprache | Signal `PRAISE`, Zustand bleibt |
 | SITZ | Sprache, Geste | Stopp, Haltung `SIT` |
-| SUCH | Sprache | Drehen, Suchbereich absuchen, Knochen anfahren, bellen, zurück, zum Schiedsrichter drehen |
+| SUCH | Sprache | Drehen, Suchbereich absuchen, Knochen anfahren, bellen, zurück, zum Schiedsrichter drehen, dann sitzen mit Abschlusston (Anforderung 5.8) |
 | PLATZ | Geste | Stopp, Haltung `LIE` |
 | AUF | Geste | Haltung `STAND` |
 
 Während SUCH läuft, werden alle Befehle ignoriert. Befehle aus einer nicht erlaubten Quelle werden ignoriert (`enforce_command_sources` in `config/behavior.yaml`). Das Bedienfenster darf alle Befehle senden.
+
+### Zustände
+
+`DogStateMachine` (Wert von `RobotState.state`):
+
+```mermaid
+stateDiagram-v2
+    [*] --> STANDING
+    STANDING --> SITTING: SITZ
+    STANDING --> LYING: PLATZ
+    SITTING --> STANDING: AUF
+    LYING --> STANDING: AUF
+    STANDING --> COMING: HIER
+    COMING --> STANDING: 0,5 m gefahren
+    STANDING --> SEARCHING: SUCH
+    SITTING --> SEARCHING: SUCH
+    LYING --> SEARCHING: SUCH
+    SEARCHING --> SITTING: Suche beendet (Ton MISSION_COMPLETE)
+```
+
+SITZ, PLATZ, AUF und HIER sind aus jedem Zustand ausser SEARCHING möglich; BRAV sendet nur `PRAISE`. Reset führt immer zurück nach STANDING. In SEARCHING ist `busy` gesetzt und alle Befehle werden abgelehnt.
+
+`SearchMission` (Wert von `RobotState.activity` während der Suche):
+
+| Phase | Ende der Phase |
+| --- | --- |
+| Zum Suchbereich drehen | um 180° gedreht |
+| Suchbereich absuchen | Knochen gesehen; nach 4,6 m ohne Fund zurück |
+| Knochen anfahren | 3 Messungen in Folge ≤ 0,32 m → Signal `BARK`; Knochen > 1,5 s weg → weitersuchen |
+| Knochen gefunden | 2,2 s |
+| Zurück zum Startfeld fahren | ≤ 0,15 m am Start |
+| Zum Schiedsrichter drehen | ausgerichtet → Signal `MISSION_COMPLETE`, Haltung `SIT`, Zustand SITTING |
+
+Haltung `SIT` und Signal `MISSION_COMPLETE` kommen im selben Regelschritt und genau einmal. Danach sind wieder alle Befehle frei (z. B. AUF zum Aufstehen).
 
 ## Bauen, testen, starten
 
@@ -114,13 +147,14 @@ ros2 run pren_simulation simulation_check --ros-args -p search_runs:=5
 
 ## Modelle
 
-Die Launch-Dateien suchen die Modelle zuerst unter `models/`, dann in den Prototyp-Ordnern:
+Die Launch-Dateien und Testskripte suchen die Modelle unter `models/`. Die Modelle sind
+nicht versioniert; Download-Quelle und Ablage stehen in der README des jeweiligen Ordners.
 
-| Modell | Neuer Ort | Bisheriger Ort |
-| --- | --- | --- |
-| Vosk `vosk-model-small-de-0.15` | `models/voice/` | `prototypes/voice_detection/models/` |
-| MediaPipe `hand_landmarker.task` | `models/gesture/` | `prototypes/gesture_recognition/` |
-| YOLO Knochen | `models/bone_detection/` | noch nicht trainiert |
+| Modell | Ort |
+| --- | --- |
+| Vosk `vosk-model-small-de-0.15` | `models/voice/` |
+| MediaPipe `hand_landmarker.task` | `models/gesture/` |
+| YOLO Knochen | `models/bone_detection/` (noch nicht trainiert) |
 
 ## Offene Punkte
 
